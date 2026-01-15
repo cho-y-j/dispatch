@@ -19,8 +19,18 @@ tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
 
+// Flutter SDK version properties for plugins
 ext {
     compileSdkVersion = 35
     minSdkVersion = 21
     targetSdkVersion = 35
 }
+
+// Provide flutter extension for plugins that need it
+class FlutterExtension {
+    int compileSdkVersion = 35
+    int minSdkVersion = 21
+    int targetSdkVersion = 35
+}
+
+rootProject.extensions.create('flutter', FlutterExtension)
