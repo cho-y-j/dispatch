@@ -814,6 +814,41 @@ export GOOGLE_MAPS_API_KEY=YOUR_API_KEY_HERE
 - **flutter.compileSdkVersion 오류**: android/build.gradle에 FlutterExtension 클래스 추가로 해결
 - **applicationName placeholder 오류**: manifestPlaceholders에 applicationName 추가로 해결
 
+### MapScreen - 배차 현장 위치 표시
+
+```
+dispatch-app/lib/screens/map_screen.dart
+```
+
+#### 주요 기능
+
+| 기능 | 설명 |
+|------|------|
+| 배차 마커 표시 | 가용 배차를 지도에 마커로 표시 |
+| 상태별 색상 구분 | 대기(녹색), 매칭(주황색), 완료(파란색) |
+| 현재 위치 | 기사의 현재 위치 표시 (파란색 마커) |
+| 거리 계산 | 현재 위치에서 배차 현장까지 거리 표시 |
+| 정보 시트 | 마커 클릭 시 배차 정보 BottomSheet |
+| 상세 이동 | 상세 보기 버튼으로 DispatchDetailScreen 이동 |
+
+#### 화면 구성
+
+- **범례**: 좌측 상단에 마커 색상 설명
+- **배차 개수**: 우측 상단에 가용 배차 수 표시
+- **컨트롤 버튼**: 우측 하단
+  - 모든 마커 보기 (fit_screen)
+  - 내 위치로 이동 (my_location)
+  - 새로고침 (refresh)
+
+#### HomeScreen 탭 구성 (4탭)
+
+| 탭 | 화면 | 아이콘 |
+|----|------|--------|
+| 1 | 배차 목록 | list_alt |
+| 2 | 지도 | map |
+| 3 | 내 배차 | history |
+| 4 | 프로필 | person |
+
 ---
 
 ## 다음 작업
@@ -821,7 +856,6 @@ export GOOGLE_MAPS_API_KEY=YOUR_API_KEY_HERE
 ### 추가 기능
 - [ ] 사업자등록상태 조회 API 연동 (국세청)
 - [ ] 운전면허 검증 API 연동 (도로교통공단)
-- [ ] 지도에 배차 현장 위치 표시 기능
 - [ ] 기사 실시간 위치 추적 화면
 
 ---
@@ -862,6 +896,7 @@ curl -X POST http://localhost:8082/api/auth/login \
 | 2026-01-16 | Phase 6: 작업 확인서 PDF 생성 완료 (iText 7, 자동생성, 다운로드) |
 | 2026-01-16 | Phase 7: FCM 푸시 알림 완료 (백엔드 + Flutter + React 웹) |
 | 2026-01-16 | Phase 8: 지도 기능 완료 (geolocator + google_maps_flutter 활성화) |
+| 2026-01-16 | Phase 8: MapScreen 추가 (배차 현장 위치 표시, 거리 계산, 4탭 구성) |
 
 ---
 
