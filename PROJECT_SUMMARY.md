@@ -308,6 +308,11 @@ dependencies:
   signature: ^5.4.1         # 전자서명
   flutter_local_notifications: ^18.0.1  # 알림
   intl: ^0.19.0             # 날짜 포맷
+  geolocator: ^13.0.2       # 위치 서비스
+  google_maps_flutter: ^2.10.0  # Google Maps
+  firebase_core: ^3.8.1     # Firebase
+  firebase_messaging: ^15.2.0  # FCM 푸시
+  stomp_dart_client: ^2.0.0    # WebSocket
 ```
 
 #### Android 빌드 설정 (build.gradle)
@@ -416,7 +421,7 @@ docker-compose up -d
 
 ### 2. geolocator 플러그인 빌드 오류
 - **문제**: `flutter.compileSdkVersion` 속성 누락 오류
-- **해결**: geolocator/google_maps_flutter 임시 비활성화 (추후 재활성화 예정)
+- **해결**: android/build.gradle에 FlutterExtension 클래스 추가 (Phase 8에서 완료)
 
 ### 3. PENDING 사용자 로그인 차단
 - **문제**: CustomUserDetails.isEnabled()가 APPROVED만 허용
@@ -753,12 +758,71 @@ firebase:
 
 ---
 
+## Phase 8: 지도 기능 (완료)
+
+### 활성화된 패키지
+
+```yaml
+# pubspec.yaml
+dependencies:
+  geolocator: ^13.0.2           # 위치 서비스
+  google_maps_flutter: ^2.10.0  # Google Maps
+```
+
+### Android 설정
+
+#### 위치 권한 (AndroidManifest.xml)
+```xml
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+```
+
+#### Google Maps API 키 설정
+```xml
+<!-- AndroidManifest.xml -->
+<meta-data
+    android:name="com.google.android.geo.API_KEY"
+    android:value="${GOOGLE_MAPS_API_KEY}" />
+```
+
+#### 빌드 설정 (android/build.gradle)
+```groovy
+// Flutter 플러그인 호환성을 위한 extension
+class FlutterExtension {
+    int compileSdkVersion = 35
+    int minSdkVersion = 21
+    int targetSdkVersion = 35
+}
+rootProject.extensions.create('flutter', FlutterExtension)
+```
+
+### Google Maps API 키 설정 방법
+
+1. **local.properties** 파일에 추가:
+```properties
+GOOGLE_MAPS_API_KEY=YOUR_API_KEY_HERE
+```
+
+2. 또는 **환경변수**로 설정:
+```bash
+export GOOGLE_MAPS_API_KEY=YOUR_API_KEY_HERE
+```
+
+### 해결된 이슈
+
+- **flutter.compileSdkVersion 오류**: android/build.gradle에 FlutterExtension 클래스 추가로 해결
+- **applicationName placeholder 오류**: manifestPlaceholders에 applicationName 추가로 해결
+
+---
+
 ## 다음 작업
 
 ### 추가 기능
-- [ ] geolocator/google_maps_flutter 재활성화
 - [ ] 사업자등록상태 조회 API 연동 (국세청)
 - [ ] 운전면허 검증 API 연동 (도로교통공단)
+- [ ] 지도에 배차 현장 위치 표시 기능
+- [ ] 기사 실시간 위치 추적 화면
 
 ---
 
@@ -797,6 +861,7 @@ curl -X POST http://localhost:8082/api/auth/login \
 | 2026-01-16 | Phase 5: verify-server 연동 완료 (화물운송/KOSHA/사업자등록 검증) |
 | 2026-01-16 | Phase 6: 작업 확인서 PDF 생성 완료 (iText 7, 자동생성, 다운로드) |
 | 2026-01-16 | Phase 7: FCM 푸시 알림 완료 (백엔드 + Flutter + React 웹) |
+| 2026-01-16 | Phase 8: 지도 기능 완료 (geolocator + google_maps_flutter 활성화) |
 
 ---
 
