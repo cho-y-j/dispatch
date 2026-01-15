@@ -1,0 +1,51 @@
+name: dispatch_app
+description: "배차 시스템 - 기사용 앱"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # 상태 관리
+  provider: ^6.1.1
+
+  # HTTP 통신
+  dio: ^5.4.0
+
+  # 로컬 저장소
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+
+  # 위치 (빌드 문제로 임시 비활성화)
+  # geolocator: ^14.0.2
+
+  # 지도 (빌드 문제로 임시 비활성화)
+  # google_maps_flutter: ^2.10.0
+
+  # 이미지 선택
+  image_picker: ^1.0.7
+
+  # 전자서명
+  signature: ^5.4.1
+
+  # 알림
+  flutter_local_notifications: ^18.0.1
+
+  # 유틸
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
