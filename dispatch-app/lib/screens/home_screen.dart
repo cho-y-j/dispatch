@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'dispatch_list_screen.dart';
+import 'map_screen.dart';
 import 'my_dispatches_screen.dart';
 import 'profile_screen.dart';
 
@@ -18,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _screens = const [
     DispatchListScreen(),
+    MapScreen(),
     MyDispatchesScreen(),
     ProfileScreen(),
   ];
@@ -61,10 +63,15 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt),
             label: '배차 목록',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: '지도',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
