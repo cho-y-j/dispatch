@@ -44,7 +44,11 @@
 │   │   │   ├── AuthService.java
 │   │   │   ├── DriverService.java
 │   │   │   ├── DispatchService.java
-│   │   │   └── FileStorageService.java
+│   │   │   ├── FileStorageService.java
+│   │   │   ├── NotificationService.java
+│   │   │   ├── FcmService.java
+│   │   │   ├── PdfGenerationService.java
+│   │   │   └── VerifyService.java
 │   │   ├── repository/
 │   │   ├── entity/
 │   │   ├── dto/
@@ -63,10 +67,14 @@
 │   │   │   ├── auth_response.dart    # 인증 응답 모델
 │   │   │   └── dispatch.dart         # 배차 모델
 │   │   ├── services/
-│   │   │   └── api_service.dart      # API 통신 서비스
+│   │   │   ├── api_service.dart      # API 통신 서비스
+│   │   │   ├── websocket_service.dart # WebSocket 서비스
+│   │   │   └── fcm_service.dart      # FCM 푸시 서비스
 │   │   ├── providers/
 │   │   │   ├── auth_provider.dart    # 인증 상태 관리
-│   │   │   └── dispatch_provider.dart # 배차 상태 관리
+│   │   │   ├── dispatch_provider.dart # 배차 상태 관리
+│   │   │   ├── websocket_provider.dart # WebSocket 상태 관리
+│   │   │   └── fcm_provider.dart     # FCM 상태 관리
 │   │   └── screens/
 │   │       ├── login_screen.dart     # 로그인 화면
 │   │       ├── register_screen.dart  # 회원가입 화면
@@ -86,19 +94,31 @@
 │   └── build/app/outputs/flutter-apk/
 │       └── app-debug.apk             # 빌드된 APK (94MB)
 │
-├── dispatch-web/                     # React 웹 (직원/관리자용) ★ NEW
+├── dispatch-web/                     # React 웹 (직원/관리자용)
 │   ├── src/
 │   │   ├── App.tsx                   # 라우팅
 │   │   ├── types/index.ts            # TypeScript 타입
 │   │   ├── api/                      # API 클라이언트
-│   │   ├── store/authStore.ts        # Zustand 상태
+│   │   ├── services/
+│   │   │   ├── websocket.ts          # WebSocket 서비스
+│   │   │   ├── firebase.ts           # Firebase 초기화
+│   │   │   └── fcm.ts                # FCM 푸시 서비스
+│   │   ├── store/
+│   │   │   ├── authStore.ts          # 인증 상태
+│   │   │   └── notificationStore.ts  # 알림 상태
+│   │   ├── hooks/
+│   │   │   ├── useWebSocket.ts       # WebSocket 훅
+│   │   │   └── useFcm.ts             # FCM 훅
 │   │   ├── layouts/MainLayout.tsx    # 사이드바 레이아웃
 │   │   └── pages/
 │   │       ├── LoginPage.tsx         # 로그인
 │   │       ├── DashboardPage.tsx     # 대시보드
 │   │       ├── DispatchesPage.tsx    # 배차 관리
 │   │       └── DriversPage.tsx       # 기사 승인
+│   ├── public/
+│   │   └── firebase-messaging-sw.js  # FCM 서비스 워커
 │   ├── .env                          # 환경 변수
+│   ├── .env.example                  # 환경 변수 예제
 │   ├── package.json                  # npm 의존성
 │   ├── tailwind.config.js            # Tailwind 설정
 │   └── dist/                         # 빌드 결과
@@ -641,10 +661,101 @@ implementation 'com.itextpdf:html2pdf:4.0.5'
 
 ---
 
+## Phase 7: FCM 푸시 알림 (완료)
+
+### 백엔드 FCM 구성
+
+```
+dispatch-api/src/main/java/com/dispatch/
+├── config/
+│   └── FirebaseConfig.java          # Firebase Admin SDK 초기화
+├── controller/
+│   └── DeviceTokenController.java   # 디바이스 토큰 등록/삭제 API
+├── service/
+│   └── FcmService.java              # FCM 푸시 알림 전송 서비스
+├── entity/
+│   └── DeviceToken.java             # 디바이스 토큰 Entity
+└── repository/
+    └── DeviceTokenRepository.java   # 토큰 조회 Repository
+```
+
+### FCM API 엔드포인트
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | /api/devices/token | 디바이스 토큰 등록 | 필요 |
+| DELETE | /api/devices/token | 디바이스 토큰 삭제 | 필요 |
+
+### FCM 알림 타입
+
+| 타입 | 설명 | 수신자 |
+|------|------|--------|
+| `NEW_DISPATCH` | 새 배차 등록 | 모든 기사 (DRIVER 역할) |
+| `DISPATCH_ACCEPTED` | 배차 수락됨 | 담당 직원 |
+| `DISPATCH_ARRIVED` | 기사 현장 도착 | 담당 직원 |
+| `DISPATCH_COMPLETED` | 작업 완료 | 담당 직원 |
+| `DISPATCH_CANCELLED` | 배차 취소 | 직원 + 기사 |
+| `DRIVER_APPROVED` | 기사 승인됨 | 해당 기사 |
+| `DRIVER_REJECTED` | 기사 거절됨 | 해당 기사 |
+
+### Flutter 앱 FCM 구성
+
+```
+dispatch-app/lib/
+├── services/
+│   └── fcm_service.dart             # FCM 서비스 (Lazy 초기화)
+└── providers/
+    └── fcm_provider.dart            # FCM 상태 Provider
+```
+
+#### Flutter FCM 패키지
+
+```yaml
+dependencies:
+  firebase_core: ^3.13.0             # Firebase Core
+  firebase_messaging: ^15.2.5        # Firebase Cloud Messaging
+```
+
+### React 웹 FCM 구성
+
+```
+dispatch-web/src/
+├── services/
+│   ├── firebase.ts                  # Firebase 초기화
+│   └── fcm.ts                       # FCM 서비스
+├── hooks/
+│   └── useFcm.ts                    # FCM React 훅
+└── public/
+    └── firebase-messaging-sw.js     # 서비스 워커 (백그라운드 알림)
+```
+
+### Firebase 설정 (application.yml)
+
+```yaml
+firebase:
+  enabled: ${FIREBASE_ENABLED:true}
+  config-path: ${FIREBASE_CONFIG_PATH:firebase-service-account.json}
+```
+
+### 알림 전송 플로우
+
+```
+1. 사용자 로그인 시 → 디바이스 토큰 서버 등록
+2. 이벤트 발생 (배차 등록/상태 변경 등)
+   ↓
+3. NotificationService.notifyXXX() 호출
+   ↓
+4. WebSocket 알림 전송 (실시간)
+   + FCM 푸시 알림 전송 (백그라운드)
+   ↓
+5. 사용자 로그아웃 시 → 디바이스 토큰 삭제
+```
+
+---
+
 ## 다음 작업
 
 ### 추가 기능
-- [ ] 푸시 알림 (FCM)
 - [ ] geolocator/google_maps_flutter 재활성화
 - [ ] 사업자등록상태 조회 API 연동 (국세청)
 - [ ] 운전면허 검증 API 연동 (도로교통공단)
@@ -685,3 +796,11 @@ curl -X POST http://localhost:8082/api/auth/login \
 | 2026-01-16 | Phase 4: WebSocket 실시간 알림 완료 (백엔드 + 웹 + 앱) |
 | 2026-01-16 | Phase 5: verify-server 연동 완료 (화물운송/KOSHA/사업자등록 검증) |
 | 2026-01-16 | Phase 6: 작업 확인서 PDF 생성 완료 (iText 7, 자동생성, 다운로드) |
+| 2026-01-16 | Phase 7: FCM 푸시 알림 완료 (백엔드 + Flutter + React 웹) |
+
+---
+
+## GitHub 저장소
+
+- **URL**: https://github.com/cho-y-j/dispatch.git
+- **브랜치**: main
