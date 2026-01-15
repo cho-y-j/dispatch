@@ -87,12 +87,17 @@ jwt:
 # verify-server 연동
 verify:
   api:
-    url: ${VERIFY_API_URL:http://localhost:8081}
-    key: ${VERIFY_API_KEY:your-api-key}
+    url: ${VERIFY_API_URL:http://localhost:8080}
+    key: ${VERIFY_API_KEY:}
 
 # 파일 저장 경로
 file:
   upload-dir: ${FILE_UPLOAD_DIR:./uploads}
+
+# Firebase FCM 설정
+firebase:
+  enabled: ${FIREBASE_ENABLED:true}
+  config-path: ${FIREBASE_CONFIG_PATH:firebase-service-account.json}
 
 # Swagger
 springdoc:

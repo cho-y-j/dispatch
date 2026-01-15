@@ -230,6 +230,18 @@ class ApiService {
     return _dio.get('/dispatches/driver/history');
   }
 
+  // 디바이스 토큰 (FCM)
+  Future<Response> registerDeviceToken(String token, String deviceType) {
+    return _dio.post('/devices/token', data: {
+      'token': token,
+      'deviceType': deviceType,
+    });
+  }
+
+  Future<Response> deleteDeviceToken(String token) {
+    return _dio.delete('/devices/token', queryParameters: {'token': token});
+  }
+
   // 토큰 저장
   Future<void> saveTokens(String accessToken, String refreshToken) async {
     await _storage.write(key: 'accessToken', value: accessToken);

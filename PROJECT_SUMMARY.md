@@ -55,7 +55,7 @@
 │   ├── build.gradle
 │   └── Dockerfile
 │
-├── dispatch-app/                     # Flutter 앱 (기사용) ★ NEW
+├── dispatch-app/                     # Flutter 앱 (기사용)
 │   ├── lib/
 │   │   ├── main.dart                 # 앱 진입점
 │   │   ├── models/
@@ -85,6 +85,23 @@
 │   ├── pubspec.yaml                  # Flutter 의존성
 │   └── build/app/outputs/flutter-apk/
 │       └── app-debug.apk             # 빌드된 APK (94MB)
+│
+├── dispatch-web/                     # React 웹 (직원/관리자용) ★ NEW
+│   ├── src/
+│   │   ├── App.tsx                   # 라우팅
+│   │   ├── types/index.ts            # TypeScript 타입
+│   │   ├── api/                      # API 클라이언트
+│   │   ├── store/authStore.ts        # Zustand 상태
+│   │   ├── layouts/MainLayout.tsx    # 사이드바 레이아웃
+│   │   └── pages/
+│   │       ├── LoginPage.tsx         # 로그인
+│   │       ├── DashboardPage.tsx     # 대시보드
+│   │       ├── DispatchesPage.tsx    # 배차 관리
+│   │       └── DriversPage.tsx       # 기사 승인
+│   ├── .env                          # 환경 변수
+│   ├── package.json                  # npm 의존성
+│   ├── tailwind.config.js            # Tailwind 설정
+│   └── dist/                         # 빌드 결과
 │
 ├── docker-compose.yml
 └── PROJECT_SUMMARY.md
@@ -387,21 +404,250 @@ docker-compose up -d
 
 ---
 
-## 다음 작업 (Phase 3)
+## Phase 3: React 웹 (완료)
 
-### React 웹 (직원/관리자용)
-- [ ] 프로젝트 생성 (Vite + React + TypeScript)
-- [ ] 인증 (로그인/로그아웃)
-- [ ] 배차 등록 화면
-- [ ] 배차 현황 대시보드
-- [ ] 기사 승인 관리 (관리자)
+### 웹 구조
+
+```
+dispatch-web/src/
+├── App.tsx                       # 라우팅 설정
+├── index.css                     # Tailwind CSS
+├── types/
+│   └── index.ts                  # TypeScript 타입 정의
+├── api/
+│   ├── client.ts                 # Axios 클라이언트 (인터셉터)
+│   ├── auth.ts                   # 인증 API
+│   ├── dispatch.ts               # 배차 API
+│   └── admin.ts                  # 관리자 API
+├── store/
+│   └── authStore.ts              # Zustand 인증 상태
+├── layouts/
+│   └── MainLayout.tsx            # 사이드바 레이아웃
+└── pages/
+    ├── LoginPage.tsx             # 로그인
+    ├── DashboardPage.tsx         # 대시보드
+    ├── DispatchesPage.tsx        # 배차 관리 + 등록 모달
+    └── DriversPage.tsx           # 기사 승인 (관리자)
+```
+
+### 화면별 기능
+
+| 화면 | 경로 | 접근 권한 | 주요 기능 |
+|------|------|----------|----------|
+| 로그인 | `/login` | 공개 | 이메일/비밀번호 로그인 |
+| 대시보드 | `/dashboard` | STAFF/ADMIN | 통계 카드, 최근 배차, 승인 대기 알림 |
+| 배차 관리 | `/dispatches` | STAFF/ADMIN | 배차 목록, 필터, 배차 등록 모달 |
+| 기사 승인 | `/drivers` | ADMIN | 승인 대기 기사 목록, 승인/거절 |
+
+### 기술 스택
+
+| 항목 | 기술 |
+|------|------|
+| 프레임워크 | React 19 + Vite 7 |
+| 언어 | TypeScript 5 |
+| 상태관리 | Zustand |
+| HTTP | Axios (인터셉터로 토큰 자동 갱신) |
+| 스타일 | Tailwind CSS v4 |
+| 아이콘 | Lucide React |
+| 날짜 | Day.js |
+| 라우팅 | React Router v7 |
+
+### 빌드 및 실행
+
+```bash
+cd /Users/jojo/pro/dispatch/dispatch-web
+
+# 의존성 설치
+npm install
+
+# 개발 서버
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+```
+
+### 환경 변수 (.env)
+```
+VITE_API_URL=http://localhost:8082/api
+```
+
+---
+
+## Phase 4: WebSocket 실시간 알림 (완료)
+
+### 백엔드 WebSocket 구성
+
+```
+dispatch-api/src/main/java/com/dispatch/
+├── config/
+│   └── WebSocketConfig.java          # STOMP 설정, JWT 인증
+├── controller/
+│   └── WebSocketController.java      # 위치 업데이트 수신, ping/pong
+├── service/
+│   └── NotificationService.java      # 알림 전송 서비스
+└── dto/websocket/
+    ├── WebSocketMessage.java         # 메시지 래퍼 (type, title, message, data)
+    ├── DispatchNotification.java     # 배차 알림 데이터
+    └── LocationUpdate.java           # 위치 업데이트 데이터
+```
+
+### WebSocket 엔드포인트
+
+| 엔드포인트 | 설명 |
+|-----------|------|
+| `/ws` (SockJS) | WebSocket 연결 (SockJS fallback 포함) |
+| `/topic/dispatches` | 새 배차 알림 (브로드캐스트) |
+| `/topic/notices` | 시스템 공지 (브로드캐스트) |
+| `/user/queue/notifications` | 개인 알림 |
+| `/user/queue/location` | 위치 업데이트 |
+| `/app/location` | 위치 업데이트 전송 (기사 → 서버) |
+| `/app/ping` | 연결 확인 |
+
+### 메시지 타입
+
+| 타입 | 설명 | 수신자 |
+|------|------|--------|
+| `NEW_DISPATCH` | 새 배차 등록 | 모든 기사 |
+| `DISPATCH_ACCEPTED` | 배차 수락됨 | 직원 |
+| `DISPATCH_ARRIVED` | 기사 현장 도착 | 직원 |
+| `DISPATCH_COMPLETED` | 작업 완료 | 직원 |
+| `DISPATCH_CANCELLED` | 배차 취소 | 직원 + 기사 |
+| `DRIVER_APPROVED` | 기사 승인됨 | 기사 |
+| `DRIVER_REJECTED` | 기사 거절됨 | 기사 |
+| `LOCATION_UPDATE` | 위치 업데이트 | 직원 |
+| `SYSTEM_NOTICE` | 시스템 공지 | 모든 사용자 |
+
+### React 웹 WebSocket 구성
+
+```
+dispatch-web/src/
+├── services/
+│   └── websocket.ts                  # STOMP 클라이언트
+├── store/
+│   └── notificationStore.ts          # 알림 상태 (Zustand)
+├── hooks/
+│   └── useWebSocket.ts               # WebSocket 훅
+└── components/
+    └── NotificationDropdown.tsx      # 알림 드롭다운 UI
+```
+
+### Flutter 앱 WebSocket 구성
+
+```
+dispatch-app/lib/
+├── services/
+│   └── websocket_service.dart        # STOMP 클라이언트
+└── providers/
+    └── websocket_provider.dart       # WebSocket Provider
+```
+
+### Flutter 추가 패키지
+
+```yaml
+dependencies:
+  stomp_dart_client: ^2.0.0     # STOMP 클라이언트
+  web_socket_channel: ^3.0.2    # WebSocket 채널
+```
+
+---
+
+## Phase 5: verify-server 연동 (완료)
+
+### 연동 구조
+
+```
+dispatch-api/src/main/java/com/dispatch/
+├── controller/
+│   └── VerifyController.java         # 검증 API 엔드포인트
+├── service/
+│   └── VerifyService.java            # verify-server 연동 서비스
+└── dto/verify/
+    ├── CargoVerifyRequest.java       # 화물운송 자격증 검증 요청
+    └── VerifyResponse.java           # 검증 응답
+```
+
+### 검증 API 엔드포인트
+
+| Method | Endpoint | 설명 | 상태 |
+|--------|----------|------|------|
+| POST | /api/verify/cargo | 화물운송 자격증 검증 | verify-server 연동 |
+| POST | /api/verify/kosha | KOSHA 교육이수증 검증 (이미지) | verify-server 연동 |
+| POST | /api/verify/business-registration | 사업자등록번호 검증 | 형식 검증 (API 대기) |
+| POST | /api/verify/driver-license | 운전면허 검증 | 미구현 |
+
+### 자동 검증
+
+- 기사 등록 시 사업자등록번호 형식 및 체크섬 자동 검증
+- 사업자등록번호 10자리 숫자 + 체크섬 알고리즘 적용
+
+### verify-server 설정 (application.yml)
+
+```yaml
+verify:
+  api:
+    url: ${VERIFY_API_URL:http://localhost:8080}
+    key: ${VERIFY_API_KEY:}
+```
+
+---
+
+## Phase 6: 작업 확인서 PDF 생성 (완료)
+
+### 구조
+
+```
+dispatch-api/src/main/java/com/dispatch/
+├── config/
+│   └── WebConfig.java                # 정적 파일 제공 설정
+├── controller/
+│   └── ReportController.java         # PDF 다운로드/조회/재생성 API
+└── service/
+    └── PdfGenerationService.java     # iText 7 기반 PDF 생성
+```
+
+### PDF 생성 라이브러리
+
+```groovy
+// build.gradle
+implementation 'com.itextpdf:itext7-core:7.2.5'
+implementation 'com.itextpdf:html2pdf:4.0.5'
+```
+
+### 리포트 API 엔드포인트
+
+| Method | Endpoint | 설명 | 인증 |
+|--------|----------|------|------|
+| POST | /api/reports/dispatches/{id}/generate | PDF 재생성 | 필요 |
+| GET | /api/reports/dispatches/{id}/download | PDF 다운로드 | 필요 |
+| GET | /api/reports/dispatches/{id}/view | PDF 보기 (브라우저) | 공개 |
+
+### 작업 확인서 PDF 내용
+
+1. **제목**: 작업 확인서 (Work Confirmation Report)
+2. **문서 정보**: 문서번호, 발행일시
+3. **배차 정보**: 작업일, 시간, 현장주소, 담당자
+4. **장비/기사 정보**: 기사명, 연락처, 장비종류, 차량번호, 사업자정보
+5. **작업 내용**: 작업내용, 예상시간, 실제 작업시간, 메모
+6. **요금 정보**: 기본요금, 최종요금
+7. **서명**: 기사 서명 (이미지), 고객 서명 (이미지)
+8. **푸터**: 법적 효력 안내
+
+### 자동 생성
+
+- 고객 서명 완료 시 (`/api/dispatches/{id}/sign/client`) 자동 PDF 생성
+- 생성된 PDF URL은 `DispatchMatch.workReportUrl`에 저장
+- 파일 저장 경로: `uploads/reports/work-report-{id}-{uuid}.pdf`
+
+---
+
+## 다음 작업
 
 ### 추가 기능
-- [ ] WebSocket 실시간 알림
-- [ ] verify-server 연동 (자격증 검증)
-- [ ] 작업 확인서 PDF 생성
 - [ ] 푸시 알림 (FCM)
 - [ ] geolocator/google_maps_flutter 재활성화
+- [ ] 사업자등록상태 조회 API 연동 (국세청)
+- [ ] 운전면허 검증 API 연동 (도로교통공단)
 
 ---
 
@@ -435,3 +681,7 @@ curl -X POST http://localhost:8082/api/auth/login \
 |------|----------|
 | 2026-01-16 | Phase 1: Spring Boot 백엔드 완료 (인증, 기사, 배차, 관리자 API) |
 | 2026-01-16 | Phase 2: Flutter 앱 완료 (로그인, 배차, 서명 등 9개 화면) |
+| 2026-01-16 | Phase 3: React 웹 완료 (로그인, 대시보드, 배차관리, 기사승인) |
+| 2026-01-16 | Phase 4: WebSocket 실시간 알림 완료 (백엔드 + 웹 + 앱) |
+| 2026-01-16 | Phase 5: verify-server 연동 완료 (화물운송/KOSHA/사업자등록 검증) |
+| 2026-01-16 | Phase 6: 작업 확인서 PDF 생성 완료 (iText 7, 자동생성, 다운로드) |

@@ -43,6 +43,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/health",
+                                "/api/reports/dispatches/*/view",  // 작업 확인서 공개 조회
+                                "/uploads/**",                      // 업로드 파일 접근
+                                "/api/dispatches/*/sign/client",    // 고객 서명 (인증 불필요)
                                 "/h2-console/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

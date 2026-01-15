@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
 import { UserRole } from './types';
+import { fcmService } from './services/fcm';
+import { useFcm } from './hooks/useFcm';
 
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
@@ -50,11 +52,24 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, isAuthenticated } = useAuthStore();
+  useFcm(); // FCM 포그라운드 메시지 리스너 활성화
+
+  useEffect(() => {
+    // FCM 서비스 초기화
+    fcmService.initialize();
+  }, []);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // 로그인 후 FCM 토큰 등록
+  useEffect(() => {
+    if (isAuthenticated) {
+      fcmService.registerToken().catch(console.error);
+    }
+  }, [isAuthenticated]);
 
   return (
     <BrowserRouter>

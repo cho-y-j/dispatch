@@ -10,12 +10,17 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useWebSocket } from '../hooks/useWebSocket';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function MainLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // WebSocket 연결
+  useWebSocket();
 
   const handleLogout = () => {
     logout();
@@ -105,9 +110,12 @@ export default function MainLayout() {
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <div className="flex-1 lg:flex-none" />
-            <div className="text-sm text-gray-500">
-              {user?.role === UserRole.ADMIN ? '관리자' : '직원'}:{' '}
-              <span className="font-medium text-gray-900">{user?.name}</span>
+            <div className="flex items-center gap-4">
+              <NotificationDropdown />
+              <div className="text-sm text-gray-500">
+                {user?.role === UserRole.ADMIN ? '관리자' : '직원'}:{' '}
+                <span className="font-medium text-gray-900">{user?.name}</span>
+              </div>
             </div>
           </div>
         </header>

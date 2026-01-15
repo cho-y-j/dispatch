@@ -15,6 +15,9 @@ public interface DriverRepository extends JpaRepository<Driver, Long> {
     Optional<Driver> findByUser(User user);
     Optional<Driver> findByUserId(Long userId);
 
+    @Query("SELECT d FROM Driver d WHERE d.user.email = :email")
+    Optional<Driver> findByUserEmail(@Param("email") String email);
+
     List<Driver> findByVerificationStatus(Driver.VerificationStatus status);
 
     @Query("SELECT d FROM Driver d WHERE d.isActive = true AND d.verificationStatus = 'VERIFIED'")

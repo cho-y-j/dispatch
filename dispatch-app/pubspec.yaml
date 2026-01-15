@@ -36,6 +36,14 @@ dependencies:
   # 알림
   flutter_local_notifications: ^18.0.1
 
+  # Firebase
+  firebase_core: ^3.8.1
+  firebase_messaging: ^15.2.0
+
+  # WebSocket
+  stomp_dart_client: ^2.0.0
+  web_socket_channel: ^3.0.2
+
   # 유틸
   intl: ^0.19.0
 

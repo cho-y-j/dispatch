@@ -41,4 +41,8 @@ public class CustomException extends RuntimeException {
     public static CustomException conflict(String message) {
         return new CustomException(message, HttpStatus.CONFLICT, "CONFLICT");
     }
+
+    public static CustomException serverError(String message) {
+        return new CustomException(message, HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR");
+    }
 }

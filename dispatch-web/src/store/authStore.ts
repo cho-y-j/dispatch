@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../types';
 import * as authApi from '../api/auth';
+import { fcmService } from '../services/fcm';
 
 interface AuthState {
   user: User | null;
@@ -33,6 +34,10 @@ export const useAuthStore = create<AuthState>()(
               isAuthenticated: true,
               isLoading: false,
             });
+
+            // FCM 토큰 등록
+            fcmService.registerToken().catch(console.error);
+
             return true;
           }
         } catch (error) {
@@ -64,6 +69,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        // FCM 토큰 삭제
+        fcmService.unregisterToken().catch(console.error);
+
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         set({ user: null, isAuthenticated: false });

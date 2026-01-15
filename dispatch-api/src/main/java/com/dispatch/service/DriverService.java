@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.dispatch.dto.verify.VerifyResponse;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,6 +30,8 @@ public class DriverService {
     private final UserRepository userRepository;
     private final EquipmentRepository equipmentRepository;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
+    private final VerifyService verifyService;
 
     @Transactional
     public DriverResponse register(Long userId, DriverRegisterRequest request) {
@@ -42,6 +46,20 @@ public class DriverService {
             throw CustomException.conflict("이미 기사 등록이 되어있습니다");
         }
 
+        // 사업자등록번호 검증
+        String verificationMessage = null;
+        if (request.getBusinessRegistrationNumber() != null) {
+            VerifyResponse verifyResult = verifyService.verifyBusinessRegistration(
+                    request.getBusinessRegistrationNumber().replaceAll("-", ""));
+
+            if (verifyResult.getResult() == VerifyResponse.VerifyResult.INVALID) {
+                verificationMessage = "사업자등록번호 검증 실패: " + verifyResult.getMessage();
+                log.warn("Business registration verification failed: {}", verificationMessage);
+            } else if (verifyResult.getResult() == VerifyResponse.VerifyResult.VALID) {
+                verificationMessage = "사업자등록번호 검증 완료";
+            }
+        }
+
         // 기사 정보 생성
         Driver driver = Driver.builder()
                 .user(user)
@@ -49,6 +67,7 @@ public class DriverService {
                 .businessName(request.getBusinessName())
                 .driverLicenseNumber(request.getDriverLicenseNumber())
                 .verificationStatus(Driver.VerificationStatus.PENDING)
+                .verificationMessage(verificationMessage)
                 .isActive(false)
                 .build();
 
@@ -156,6 +175,9 @@ public class DriverService {
 
         log.info("Driver approved: driverId={}, adminId={}", driverId, adminId);
 
+        // 기사에게 승인 알림 전송
+        notificationService.notifyDriverApproved(driver);
+
         return DriverResponse.from(driver);
     }
 
@@ -171,6 +193,9 @@ public class DriverService {
         driver.getUser().setStatus(User.UserStatus.REJECTED);
 
         log.info("Driver rejected: driverId={}, reason={}", driverId, reason);
+
+        // 기사에게 거절 알림 전송
+        notificationService.notifyDriverRejected(driver, reason);
 
         return DriverResponse.from(driver);
     }

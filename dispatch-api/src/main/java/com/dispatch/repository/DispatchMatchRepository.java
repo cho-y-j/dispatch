@@ -25,4 +25,7 @@ public interface DispatchMatchRepository extends JpaRepository<DispatchMatch, Lo
 
     @Query("SELECT m FROM DispatchMatch m WHERE m.driver = :driver AND m.status NOT IN ('COMPLETED', 'SIGNED', 'CANCELLED')")
     List<DispatchMatch> findActiveMatchesByDriver(@Param("driver") Driver driver);
+
+    @Query("SELECT m FROM DispatchMatch m WHERE m.driver = :driver AND m.status IN ('EN_ROUTE', 'ARRIVED', 'WORKING') ORDER BY m.matchedAt DESC")
+    Optional<DispatchMatch> findActiveMatchByDriver(@Param("driver") Driver driver);
 }

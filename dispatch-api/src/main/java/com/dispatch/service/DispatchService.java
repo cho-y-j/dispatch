@@ -25,6 +25,8 @@ public class DispatchService {
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
     private final EquipmentRepository equipmentRepository;
+    private final NotificationService notificationService;
+    private final PdfGenerationService pdfGenerationService;
 
     // ========== 직원용 API ==========
 
@@ -57,7 +59,8 @@ public class DispatchService {
 
         log.info("Dispatch created: id={}, staffId={}", dispatch.getId(), staffId);
 
-        // TODO: 주변 기사들에게 푸시 알림 전송
+        // 주변 기사들에게 실시간 알림 전송
+        notificationService.notifyNewDispatch(dispatch);
 
         return DispatchResponse.from(dispatch);
     }
@@ -141,7 +144,8 @@ public class DispatchService {
 
         log.info("Dispatch accepted: dispatchId={}, driverId={}", dispatchId, driver.getId());
 
-        // TODO: 직원에게 알림 전송
+        // 직원에게 실시간 알림 전송
+        notificationService.notifyDispatchAccepted(dispatch);
 
         return DispatchResponse.from(dispatch, match);
     }
@@ -176,7 +180,8 @@ public class DispatchService {
 
         log.info("Driver arrived: dispatchId={}", dispatchId);
 
-        // TODO: 직원에게 알림 전송
+        // 직원에게 실시간 알림 전송
+        notificationService.notifyDriverArrived(match.getRequest());
 
         return DispatchResponse.from(match.getRequest(), match);
     }
@@ -252,7 +257,18 @@ public class DispatchService {
 
         log.info("Client signed, dispatch completed: dispatchId={}", dispatchId);
 
-        // TODO: 작업 확인서 PDF 생성
+        // 직원에게 완료 알림 전송
+        notificationService.notifyDispatchCompleted(match.getRequest());
+
+        // 작업 확인서 PDF 생성
+        try {
+            String pdfUrl = pdfGenerationService.generateWorkReport(match);
+            match.setWorkReportUrl(pdfUrl);
+            log.info("Work report generated: dispatchId={}, url={}", dispatchId, pdfUrl);
+        } catch (Exception e) {
+            log.error("Failed to generate work report PDF: dispatchId={}, error={}", dispatchId, e.getMessage());
+            // PDF 생성 실패해도 배차 완료 처리는 진행
+        }
 
         return DispatchResponse.from(match.getRequest(), match);
     }
@@ -298,6 +314,9 @@ public class DispatchService {
         });
 
         log.info("Dispatch cancelled: dispatchId={}", dispatchId);
+
+        // 관련자들에게 취소 알림 전송
+        notificationService.notifyDispatchCancelled(dispatch);
 
         return DispatchResponse.from(dispatch);
     }

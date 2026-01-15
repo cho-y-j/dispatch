@@ -32,5 +32,16 @@ dist/
 .env
 .env.local
 
+# Secrets
+**/firebase-service-account.json
+**/google-services.json
+**/*.keystore
+
+# Uploads
+uploads/
+
+# Local properties
+local.properties
+
 # Misc
 Untitled

@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../models/auth_response.dart';
 import '../services/api_service.dart';
+import '../services/fcm_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
+  final FcmService _fcmService = FcmService();
   User? _user;
   bool _isLoading = false;
   String? _error;
+  String? _token;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _user != null;
   bool get isAuthenticated => _user != null;
   String? get error => _error;
+  String? get token => _token;
 
   Future<bool> register({
     required String email,
@@ -39,6 +43,7 @@ class AuthProvider with ChangeNotifier {
           authResponse.accessToken,
           authResponse.refreshToken,
         );
+        _token = authResponse.accessToken;
         _user = authResponse.user;
         _isLoading = false;
         notifyListeners();
@@ -72,7 +77,16 @@ class AuthProvider with ChangeNotifier {
           authResponse.accessToken,
           authResponse.refreshToken,
         );
+        _token = authResponse.accessToken;
         _user = authResponse.user;
+
+        // FCM 토큰 등록 (실패해도 무시)
+        try {
+          await _fcmService.registerToken();
+        } catch (e) {
+          // FCM 미설정 시 무시
+        }
+
         _isLoading = false;
         notifyListeners();
         return true;
@@ -89,8 +103,16 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // FCM 토큰 삭제 (실패해도 무시)
+    try {
+      await _fcmService.unregisterToken();
+    } catch (e) {
+      // FCM 미설정 시 무시
+    }
+
     await _apiService.clearTokens();
     _user = null;
+    _token = null;
     notifyListeners();
   }
 
@@ -102,11 +124,12 @@ class AuthProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final token = await _apiService.getAccessToken();
-    if (token != null) {
+    final accessToken = await _apiService.getAccessToken();
+    if (accessToken != null) {
       try {
         final response = await _apiService.getProfile();
         if (response.data['success']) {
+          _token = accessToken;
           _user = User.fromJson(response.data['data']['user']);
           _isLoading = false;
           notifyListeners();
@@ -116,6 +139,7 @@ class AuthProvider with ChangeNotifier {
         // 토큰 만료 등
       }
     }
+    _token = null;
     _isLoading = false;
     notifyListeners();
     return false;
