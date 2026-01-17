@@ -24,8 +24,11 @@ dependencies:
   # 위치
   geolocator: ^13.0.2
 
-  # 지도
-  google_maps_flutter: ^2.10.0
+  # 지도 - 카카오맵 (웹뷰 방식)
+  webview_flutter: ^4.4.0
+
+  # 카카오내비 연동
+  url_launcher: ^6.2.2
 
   # 이미지 선택
   image_picker: ^1.0.7

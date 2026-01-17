@@ -1,8 +1,10 @@
-import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import '../config/app_config.dart';
 import '../providers/dispatch_provider.dart';
 import '../models/dispatch.dart';
 import 'dispatch_detail_screen.dart';
@@ -15,14 +17,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  GoogleMapController? _mapController;
+  WebViewController? _webViewController;
   Position? _currentPosition;
   bool _isLoading = true;
   String? _errorMessage;
-  Set<Marker> _markers = {};
-
-  // 서울 기본 위치
-  static const LatLng _defaultLocation = LatLng(37.5665, 126.9780);
 
   @override
   void initState() {
@@ -33,11 +31,11 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _initializeMap() async {
     await _getCurrentLocation();
     await _loadDispatches();
+    _initWebView();
   }
 
   Future<void> _getCurrentLocation() async {
     try {
-      // 위치 권한 확인
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -58,7 +56,6 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
-      // 위치 서비스 활성화 확인
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
@@ -68,7 +65,6 @@ class _MapScreenState extends State<MapScreen> {
         return;
       }
 
-      // 현재 위치 가져오기
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -87,82 +83,145 @@ class _MapScreenState extends State<MapScreen> {
         latitude: _currentPosition?.latitude,
         longitude: _currentPosition?.longitude,
       );
-      _updateMarkers();
     } catch (e) {
       debugPrint('배차 목록 로드 오류: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
-  void _updateMarkers() {
+  void _initWebView() {
     final dispatches = context.read<DispatchProvider>().availableDispatches;
-    final Set<Marker> markers = {};
+    final html = _generateMapHtml(dispatches);
 
-    // 현재 위치 마커
-    if (_currentPosition != null) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('current_location'),
-          position: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          infoWindow: const InfoWindow(title: '내 위치'),
-        ),
-      );
-    }
-
-    // 배차 마커
-    for (final dispatch in dispatches) {
-      markers.add(
-        Marker(
-          markerId: MarkerId('dispatch_${dispatch.id}'),
-          position: LatLng(dispatch.latitude, dispatch.longitude),
-          icon: BitmapDescriptor.defaultMarkerWithHue(_getMarkerColor(dispatch)),
-          infoWindow: InfoWindow(
-            title: dispatch.equipmentTypeName,
-            snippet: '${dispatch.siteAddress}\n${_formatPrice(dispatch.price)}',
-            onTap: () => _onMarkerTap(dispatch),
-          ),
-          onTap: () => _showDispatchBottomSheet(dispatch),
-        ),
-      );
-    }
+    _webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+        'FlutterChannel',
+        onMessageReceived: (message) {
+          _handleMarkerTap(message.message);
+        },
+      )
+      ..loadHtmlString(html);
 
     setState(() {
-      _markers = markers;
+      _isLoading = false;
     });
   }
 
-  double _getMarkerColor(Dispatch dispatch) {
-    switch (dispatch.status) {
-      case DispatchStatus.OPEN:
-        return BitmapDescriptor.hueGreen;
-      case DispatchStatus.MATCHED:
-        return BitmapDescriptor.hueOrange;
-      case DispatchStatus.IN_PROGRESS:
-        return BitmapDescriptor.hueYellow;
-      case DispatchStatus.COMPLETED:
-        return BitmapDescriptor.hueBlue;
-      case DispatchStatus.CANCELLED:
-        return BitmapDescriptor.hueRed;
+  String _generateMapHtml(List<Dispatch> dispatches) {
+    final lat = _currentPosition?.latitude ?? 37.5665;
+    final lng = _currentPosition?.longitude ?? 126.9780;
+
+    final markersJson = dispatches.map((d) => {
+      'id': d.id,
+      'lat': d.latitude,
+      'lng': d.longitude,
+      'title': d.equipmentTypeName,
+      'address': d.siteAddress,
+      'price': d.price?.toStringAsFixed(0) ?? '협의',
+    }).toList();
+
+    return '''
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    #map { width: 100%; height: 100%; }
+    .info-window {
+      padding: 8px;
+      font-size: 12px;
+      line-height: 1.4;
     }
+    .info-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${AppConfig.kakaoAppKey}&autoload=false"></script>
+  <script>
+    kakao.maps.load(function() {
+      var container = document.getElementById('map');
+      var options = {
+        center: new kakao.maps.LatLng($lat, $lng),
+        level: 5
+      };
+      var map = new kakao.maps.Map(container, options);
+
+      // 현재 위치 마커
+      var currentMarker = new kakao.maps.Marker({
+        map: map,
+        position: new kakao.maps.LatLng($lat, $lng),
+        image: new kakao.maps.MarkerImage(
+          'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+          new kakao.maps.Size(24, 35)
+        )
+      });
+
+      // 배차 마커들
+      var dispatches = ${jsonEncode(markersJson)};
+      var bounds = new kakao.maps.LatLngBounds();
+      bounds.extend(new kakao.maps.LatLng($lat, $lng));
+
+      dispatches.forEach(function(d) {
+        var position = new kakao.maps.LatLng(d.lat, d.lng);
+        bounds.extend(position);
+
+        var marker = new kakao.maps.Marker({
+          map: map,
+          position: position
+        });
+
+        var infoContent = '<div class="info-window">' +
+          '<div class="info-title">' + d.title + '</div>' +
+          '<div>' + d.address + '</div>' +
+          '<div>' + d.price + '원</div>' +
+          '</div>';
+
+        var infowindow = new kakao.maps.InfoWindow({
+          content: infoContent
+        });
+
+        kakao.maps.event.addListener(marker, 'click', function() {
+          if (window.FlutterChannel) {
+            FlutterChannel.postMessage(d.id.toString());
+          }
+        });
+
+        kakao.maps.event.addListener(marker, 'mouseover', function() {
+          infowindow.open(map, marker);
+        });
+
+        kakao.maps.event.addListener(marker, 'mouseout', function() {
+          infowindow.close();
+        });
+      });
+
+      if (dispatches.length > 0) {
+        map.setBounds(bounds);
+      }
+    });
+  </script>
+</body>
+</html>
+''';
   }
 
-  String _formatPrice(double? price) {
-    if (price == null) return '가격 협의';
-    return '${price.toStringAsFixed(0)}원';
-  }
+  void _handleMarkerTap(String dispatchIdStr) {
+    final dispatchId = int.tryParse(dispatchIdStr);
+    if (dispatchId == null) return;
 
-  void _onMarkerTap(Dispatch dispatch) {
-    context.read<DispatchProvider>().setCurrentDispatch(dispatch);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => DispatchDetailScreen(dispatch: dispatch),
-      ),
+    final dispatches = context.read<DispatchProvider>().availableDispatches;
+    final dispatch = dispatches.firstWhere(
+      (d) => d.id == dispatchId,
+      orElse: () => dispatches.first,
     );
+    _showDispatchBottomSheet(dispatch);
   }
 
   void _showDispatchBottomSheet(Dispatch dispatch) {
@@ -184,44 +243,43 @@ class _MapScreenState extends State<MapScreen> {
             ),
           );
         },
+        onNavigate: () {
+          Navigator.pop(context);
+          _openKakaoNavi(dispatch);
+        },
       ),
     );
   }
 
-  void _moveToCurrentLocation() {
-    if (_currentPosition != null && _mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-          14,
-        ),
-      );
+  Future<void> _openKakaoNavi(Dispatch dispatch) async {
+    final kakaoNaviUrl = Uri.parse(
+      'kakaonavi-sdk://route?ep=${dispatch.latitude},${dispatch.longitude}&by=CAR',
+    );
+    final kakaoMapUrl = Uri.parse(
+      'https://map.kakao.com/link/to/${Uri.encodeComponent(dispatch.siteAddress)},${dispatch.latitude},${dispatch.longitude}',
+    );
+
+    try {
+      if (await canLaunchUrl(kakaoNaviUrl)) {
+        await launchUrl(kakaoNaviUrl);
+      } else if (await canLaunchUrl(kakaoMapUrl)) {
+        await launchUrl(kakaoMapUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('내비게이션을 열 수 없습니다')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('내비게이션 열기 오류: $e');
     }
   }
 
-  void _fitAllMarkers() {
-    if (_markers.isEmpty || _mapController == null) return;
-
-    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-
-    for (final marker in _markers) {
-      final lat = marker.position.latitude;
-      final lng = marker.position.longitude;
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-    }
-
-    _mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(minLat, minLng),
-          northeast: LatLng(maxLat, maxLng),
-        ),
-        50,
-      ),
-    );
+  Future<void> _refresh() async {
+    setState(() => _isLoading = true);
+    await _loadDispatches();
+    _initWebView();
   }
 
   @override
@@ -257,28 +315,10 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
 
-    final initialPosition = _currentPosition != null
-        ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
-        : _defaultLocation;
-
     return Stack(
       children: [
-        GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: initialPosition,
-            zoom: 12,
-          ),
-          markers: _markers,
-          myLocationEnabled: true,
-          myLocationButtonEnabled: false,
-          zoomControlsEnabled: false,
-          mapToolbarEnabled: false,
-          onMapCreated: (controller) {
-            _mapController = controller;
-            // 모든 마커가 보이도록 카메라 조정
-            Future.delayed(const Duration(milliseconds: 500), _fitAllMarkers);
-          },
-        ),
+        if (_webViewController != null)
+          WebViewWidget(controller: _webViewController!),
         // 범례
         Positioned(
           top: 16,
@@ -292,23 +332,8 @@ class _MapScreenState extends State<MapScreen> {
           child: Column(
             children: [
               FloatingActionButton.small(
-                heroTag: 'fit_all',
-                onPressed: _fitAllMarkers,
-                child: const Icon(Icons.fit_screen),
-              ),
-              const SizedBox(height: 8),
-              FloatingActionButton.small(
-                heroTag: 'my_location',
-                onPressed: _moveToCurrentLocation,
-                child: const Icon(Icons.my_location),
-              ),
-              const SizedBox(height: 8),
-              FloatingActionButton.small(
                 heroTag: 'refresh',
-                onPressed: () async {
-                  setState(() => _isLoading = true);
-                  await _loadDispatches();
-                },
+                onPressed: _refresh,
                 child: const Icon(Icons.refresh),
               ),
             ],
@@ -372,7 +397,7 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           _legendItem(Colors.green, '배차 대기'),
           _legendItem(Colors.orange, '매칭 완료'),
-          _legendItem(Colors.blue, '내 위치'),
+          _legendItem(Colors.amber, '내 위치'),
         ],
       ),
     );
@@ -398,23 +423,19 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _mapController?.dispose();
-    super.dispose();
-  }
 }
 
 class _DispatchInfoSheet extends StatelessWidget {
   final Dispatch dispatch;
   final Position? currentPosition;
   final VoidCallback onViewDetail;
+  final VoidCallback onNavigate;
 
   const _DispatchInfoSheet({
     required this.dispatch,
     this.currentPosition,
     required this.onViewDetail,
+    required this.onNavigate,
   });
 
   String _calculateDistance() {
@@ -444,7 +465,6 @@ class _DispatchInfoSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더
           Row(
             children: [
               Container(
@@ -480,8 +500,6 @@ class _DispatchInfoSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-
-          // 장비 종류
           Text(
             dispatch.equipmentTypeName,
             style: const TextStyle(
@@ -490,8 +508,6 @@ class _DispatchInfoSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-
-          // 주소
           Row(
             children: [
               const Icon(Icons.location_on, size: 16, color: Colors.grey),
@@ -505,8 +521,6 @@ class _DispatchInfoSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-
-          // 작업일시
           Row(
             children: [
               const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
@@ -518,8 +532,6 @@ class _DispatchInfoSheet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-
-          // 가격
           Row(
             children: [
               const Icon(Icons.payments, size: 16, color: Colors.grey),
@@ -533,22 +545,32 @@ class _DispatchInfoSheet extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              if (dispatch.priceNegotiable == true)
-                const Text(' (협의 가능)', style: TextStyle(color: Colors.grey)),
             ],
           ),
           const SizedBox(height: 16),
-
-          // 상세 보기 버튼
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onViewDetail,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onNavigate,
+                  icon: const Icon(Icons.navigation),
+                  label: const Text('길안내'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
               ),
-              child: const Text('상세 보기'),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: onViewDetail,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('상세 보기'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -28,4 +28,10 @@ public interface DispatchMatchRepository extends JpaRepository<DispatchMatch, Lo
 
     @Query("SELECT m FROM DispatchMatch m WHERE m.driver = :driver AND m.status IN ('EN_ROUTE', 'ARRIVED', 'WORKING') ORDER BY m.matchedAt DESC")
     Optional<DispatchMatch> findActiveMatchByDriver(@Param("driver") Driver driver);
+
+    @Query("SELECT m FROM DispatchMatch m WHERE m.request.id = :dispatchId")
+    Optional<DispatchMatch> findByDispatchRequestId(@Param("dispatchId") Long dispatchId);
+
+    @Query("SELECT m FROM DispatchMatch m WHERE m.driver.id = :driverId ORDER BY m.matchedAt DESC")
+    List<DispatchMatch> findByDriverId(@Param("driverId") Long driverId);
 }

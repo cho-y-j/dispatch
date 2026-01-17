@@ -34,6 +34,9 @@ public class WebSocketMessage<T> {
         // 위치 관련
         LOCATION_UPDATE,        // 기사 위치 업데이트 (직원에게)
 
+        // 채팅 관련
+        CHAT_MESSAGE,           // 채팅 메시지
+
         // 시스템
         SYSTEM_NOTICE           // 시스템 공지
     }

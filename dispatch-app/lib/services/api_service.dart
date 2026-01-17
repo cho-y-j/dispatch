@@ -230,6 +230,57 @@ class ApiService {
     return _dio.get('/dispatches/driver/history');
   }
 
+  // 발주처용 배차 등록
+  Future<Response> createDispatch({
+    required String siteAddress,
+    String? siteDetail,
+    String? contactName,
+    String? contactPhone,
+    required String workDate,
+    required String workTime,
+    required String equipmentType,
+    String? workDescription,
+    int? estimatedHours,
+    double? minHeight,
+    double? price,
+    bool isUrgent = false,
+    int? minDriverRating,
+  }) {
+    return _dio.post('/dispatches', data: {
+      'siteAddress': siteAddress,
+      if (siteDetail != null && siteDetail.isNotEmpty) 'siteDetail': siteDetail,
+      if (contactName != null && contactName.isNotEmpty) 'contactName': contactName,
+      if (contactPhone != null && contactPhone.isNotEmpty) 'contactPhone': contactPhone,
+      'workDate': workDate,
+      'workTime': workTime,
+      'equipmentType': equipmentType,
+      if (workDescription != null && workDescription.isNotEmpty) 'workDescription': workDescription,
+      if (estimatedHours != null) 'estimatedHours': estimatedHours,
+      if (minHeight != null) 'minHeight': minHeight,
+      if (price != null) 'price': price,
+      'isUrgent': isUrgent,
+      if (minDriverRating != null) 'minDriverRating': minDriverRating,
+    });
+  }
+
+  // 발주처용 배차 목록
+  Future<Response> getCompanyDispatches() {
+    return _dio.get('/dispatches/company/history');
+  }
+
+  // 배차 취소
+  Future<Response> cancelDispatch(int id) {
+    return _dio.post('/dispatches/$id/cancel');
+  }
+
+  // 기사 평가
+  Future<Response> rateDriver(int dispatchId, int rating, String? comment) {
+    return _dio.post('/dispatches/$dispatchId/rating', data: {
+      'rating': rating,
+      if (comment != null && comment.isNotEmpty) 'comment': comment,
+    });
+  }
+
   // 디바이스 토큰 (FCM)
   Future<Response> registerDeviceToken(String token, String deviceType) {
     return _dio.post('/devices/token', data: {

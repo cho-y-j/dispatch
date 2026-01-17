@@ -28,6 +28,11 @@ public class DispatchRequest {
     @JoinColumn(name = "staff_id", nullable = false)
     private User staff;
 
+    // 발주처 (업체)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
     // 현장 정보
     @Column(name = "site_address", nullable = false)
     private String siteAddress;
@@ -35,10 +40,9 @@ public class DispatchRequest {
     @Column(name = "site_detail")
     private String siteDetail;
 
-    @Column(nullable = false)
+    // 좌표 (선택적 - 주소 검색으로 자동 설정)
     private Double latitude;
 
-    @Column(nullable = false)
     private Double longitude;
 
     // 담당자 정보
@@ -83,6 +87,15 @@ public class DispatchRequest {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DispatchStatus status;
+
+    // 긴급 배차 옵션
+    @Column(name = "is_urgent")
+    @Builder.Default
+    private Boolean isUrgent = false;
+
+    // 최소 기사 별점 필터
+    @Column(name = "min_driver_rating")
+    private Integer minDriverRating;
 
     @CreationTimestamp
     @Column(updatable = false)

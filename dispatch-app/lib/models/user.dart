@@ -34,7 +34,10 @@ class User {
 
   bool get isApproved => status == UserStatus.APPROVED;
   bool get isPending => status == UserStatus.PENDING;
+  bool get isDriver => role == UserRole.DRIVER;
+  bool get isCompany => role == UserRole.COMPANY;
+  bool get isAdmin => role == UserRole.ADMIN;
 }
 
-enum UserRole { DRIVER, STAFF, ADMIN }
+enum UserRole { DRIVER, COMPANY, STAFF, ADMIN }
 enum UserStatus { PENDING, APPROVED, REJECTED, SUSPENDED }

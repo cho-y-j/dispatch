@@ -40,6 +40,11 @@ public class User {
     @Column(nullable = false)
     private UserStatus status;
 
+    // 발주처 직원인 경우 소속 회사
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
@@ -49,8 +54,9 @@ public class User {
 
     public enum UserRole {
         DRIVER,     // 기사 (장비 소유자)
-        STAFF,      // 직원 (배차 요청자)
-        ADMIN       // 관리자
+        STAFF,      // 직원 (배차 요청자) - 발주처 소속
+        ADMIN,      // 관리자
+        COMPANY     // 발주처 직원/담당자
     }
 
     public enum UserStatus {

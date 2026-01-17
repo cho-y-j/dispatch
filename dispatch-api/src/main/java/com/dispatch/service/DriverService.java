@@ -1,12 +1,15 @@
 package com.dispatch.service;
 
+import com.dispatch.dto.admin.GradeUpdateRequest;
 import com.dispatch.dto.driver.DriverRegisterRequest;
 import com.dispatch.dto.driver.DriverResponse;
 import com.dispatch.dto.driver.LocationUpdateRequest;
 import com.dispatch.entity.Driver;
+import com.dispatch.entity.DriverGradeHistory;
 import com.dispatch.entity.Equipment;
 import com.dispatch.entity.User;
 import com.dispatch.exception.CustomException;
+import com.dispatch.repository.DriverGradeHistoryRepository;
 import com.dispatch.repository.DriverRepository;
 import com.dispatch.repository.EquipmentRepository;
 import com.dispatch.repository.UserRepository;
@@ -29,6 +32,7 @@ public class DriverService {
     private final DriverRepository driverRepository;
     private final UserRepository userRepository;
     private final EquipmentRepository equipmentRepository;
+    private final DriverGradeHistoryRepository gradeHistoryRepository;
     private final FileStorageService fileStorageService;
     private final NotificationService notificationService;
     private final VerifyService verifyService;
@@ -161,6 +165,22 @@ public class DriverService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<DriverResponse> getAllDrivers() {
+        return driverRepository.findAll()
+                .stream()
+                .map(DriverResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DriverResponse> getApprovedDrivers() {
+        return driverRepository.findByVerificationStatus(Driver.VerificationStatus.VERIFIED)
+                .stream()
+                .map(DriverResponse::from)
+                .toList();
+    }
+
     @Transactional
     public DriverResponse approveDriver(Long driverId, Long adminId) {
         Driver driver = driverRepository.findById(driverId)
@@ -196,6 +216,39 @@ public class DriverService {
 
         // 기사에게 거절 알림 전송
         notificationService.notifyDriverRejected(driver, reason);
+
+        return DriverResponse.from(driver);
+    }
+
+    @Transactional
+    public DriverResponse updateDriverGrade(Long driverId, GradeUpdateRequest request, Long adminId) {
+        Driver driver = driverRepository.findById(driverId)
+                .orElseThrow(() -> CustomException.notFound("기사를 찾을 수 없습니다"));
+
+        Driver.DriverGrade previousGrade = driver.getGrade();
+        Driver.DriverGrade newGrade = request.getGrade();
+
+        if (previousGrade == newGrade) {
+            return DriverResponse.from(driver);
+        }
+
+        // 등급 변경
+        driver.setGrade(newGrade);
+
+        // 등급 변경 이력 저장
+        DriverGradeHistory history = DriverGradeHistory.builder()
+                .driverId(driverId)
+                .previousGrade(previousGrade != null ?
+                        DriverGradeHistory.DriverGrade.valueOf(previousGrade.name()) : null)
+                .newGrade(DriverGradeHistory.DriverGrade.valueOf(newGrade.name()))
+                .reason(request.getReason())
+                .changedBy(adminId)
+                .build();
+
+        gradeHistoryRepository.save(history);
+
+        log.info("Driver grade updated: driverId={}, {} -> {}, adminId={}",
+                driverId, previousGrade, newGrade, adminId);
 
         return DriverResponse.from(driver);
     }

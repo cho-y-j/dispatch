@@ -19,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +41,8 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // 공개 엔드포인트
+                        .requestMatchers(HttpMethod.POST, "/api/companies/register").permitAll()  // 발주처 회원가입
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/health",
@@ -55,10 +58,12 @@ public class SecurityConfig {
                         ).permitAll()
                         // 관리자 전용
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // 직원 전용
-                        .requestMatchers("/api/dispatches/create").hasAnyRole("STAFF", "ADMIN")
+                        // 직원/발주처 전용
+                        .requestMatchers("/api/dispatches/create").hasAnyRole("STAFF", "ADMIN", "COMPANY")
                         // 기사 전용
                         .requestMatchers("/api/drivers/**").hasAnyRole("DRIVER", "ADMIN")
+                        // 발주처 전용
+                        .requestMatchers("/api/companies/my/**").hasAnyRole("COMPANY", "STAFF")
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
@@ -72,10 +77,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOriginPatterns(List.of("*"));  // credentials 모드 지원
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setAllowCredentials(true);  // credentials 허용
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

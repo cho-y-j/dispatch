@@ -1,1 +1,4 @@
 #include "Generated.xcconfig"
+
+// Kakao Map API Key
+KAKAO_APP_KEY=b59b1a8e9a3df2de8cfa33158061f337

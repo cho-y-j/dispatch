@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/dispatch_provider.dart';
 import '../models/dispatch.dart';
 import 'signature_screen.dart';
@@ -26,7 +27,7 @@ class DispatchDetailScreen extends StatelessWidget {
               children: [
                 _buildInfoCard(context, currentDispatch),
                 const SizedBox(height: 16),
-                _buildLocationCard(currentDispatch),
+                _buildLocationCard(context, currentDispatch),
                 const SizedBox(height: 16),
                 _buildWorkCard(currentDispatch),
                 const SizedBox(height: 24),
@@ -109,18 +110,27 @@ class DispatchDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationCard(Dispatch dispatch) {
+  Widget _buildLocationCard(BuildContext context, Dispatch dispatch) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.location_on, color: Colors.red),
-                SizedBox(width: 8),
-                Text('현장 위치', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Icon(Icons.location_on, color: Colors.red),
+                const SizedBox(width: 8),
+                const Text('현장 위치', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => _openKakaoNavi(context, dispatch),
+                  icon: const Icon(Icons.navigation, size: 18),
+                  label: const Text('길안내'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -153,6 +163,39 @@ class DispatchDetailScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openKakaoNavi(BuildContext context, Dispatch dispatch) async {
+    // 카카오내비 딥링크
+    final kakaoNaviUrl = Uri.parse(
+      'kakaonavi-sdk://route?ep=${dispatch.latitude},${dispatch.longitude}&by=CAR',
+    );
+
+    // 카카오맵 웹 URL (카카오내비가 없을 경우 폴백)
+    final kakaoMapUrl = Uri.parse(
+      'https://map.kakao.com/link/to/${Uri.encodeComponent(dispatch.siteAddress)},${dispatch.latitude},${dispatch.longitude}',
+    );
+
+    try {
+      if (await canLaunchUrl(kakaoNaviUrl)) {
+        await launchUrl(kakaoNaviUrl);
+      } else if (await canLaunchUrl(kakaoMapUrl)) {
+        await launchUrl(kakaoMapUrl, mode: LaunchMode.externalApplication);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('내비게이션을 열 수 없습니다')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('내비게이션 열기 오류: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('내비게이션을 열 수 없습니다')),
+        );
+      }
+    }
   }
 
   Widget _buildWorkCard(Dispatch dispatch) {

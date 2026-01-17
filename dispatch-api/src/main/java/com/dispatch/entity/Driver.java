@@ -62,6 +62,28 @@ public class Driver {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    // 등급 시스템
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grade")
+    @Builder.Default
+    private DriverGrade grade = DriverGrade.GRADE_3;
+
+    @Column(name = "average_rating")
+    @Builder.Default
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_ratings")
+    @Builder.Default
+    private Integer totalRatings = 0;
+
+    @Column(name = "total_completed_dispatches")
+    @Builder.Default
+    private Integer totalCompletedDispatches = 0;
+
+    @Column(name = "warning_count")
+    @Builder.Default
+    private Integer warningCount = 0;
+
     // 승인 정보
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
@@ -87,5 +109,11 @@ public class Driver {
         VERIFIED,       // 검증 완료
         FAILED,         // 검증 실패
         REJECTED        // 관리자 거절
+    }
+
+    public enum DriverGrade {
+        GRADE_1,    // 1등급 - 최우선 배차
+        GRADE_2,    // 2등급 - 시간차 후 노출
+        GRADE_3     // 3등급 - 마지막 노출
     }
 }

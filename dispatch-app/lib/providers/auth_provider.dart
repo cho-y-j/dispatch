@@ -25,6 +25,22 @@ class AuthProvider with ChangeNotifier {
     required String name,
     required String phone,
   }) async {
+    return registerWithRole(
+      email: email,
+      password: password,
+      name: name,
+      phone: phone,
+      role: 'DRIVER',
+    );
+  }
+
+  Future<bool> registerWithRole({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+    required String role,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -35,6 +51,7 @@ class AuthProvider with ChangeNotifier {
         password: password,
         name: name,
         phone: phone,
+        role: role,
       );
 
       if (response.data['success']) {

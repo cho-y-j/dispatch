@@ -45,5 +45,19 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Kakao Map API Key -->
+	<key>KAKAO_APP_KEY</key>
+	<string>$(KAKAO_APP_KEY)</string>
+	<!-- Location Permissions -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>배차 현장 위치 확인 및 내비게이션을 위해 위치 권한이 필요합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>실시간 위치 추적을 위해 백그라운드 위치 권한이 필요합니다.</string>
+	<!-- URL Schemes for Kakao Navi -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaonavi-sdk</string>
+		<string>kakaomap</string>
+	</array>
 </dict>
 </plist>

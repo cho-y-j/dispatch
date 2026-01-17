@@ -38,7 +38,10 @@ android {
             applicationName: "android.app.Application",
             GOOGLE_MAPS_API_KEY: project.hasProperty('GOOGLE_MAPS_API_KEY')
                 ? project.property('GOOGLE_MAPS_API_KEY')
-                : System.getenv('GOOGLE_MAPS_API_KEY') ?: ''
+                : System.getenv('GOOGLE_MAPS_API_KEY') ?: '',
+            KAKAO_APP_KEY: project.hasProperty('KAKAO_APP_KEY')
+                ? project.property('KAKAO_APP_KEY')
+                : System.getenv('KAKAO_APP_KEY') ?: ''
         ]
     }
 

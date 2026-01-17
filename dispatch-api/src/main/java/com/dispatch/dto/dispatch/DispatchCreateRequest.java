@@ -24,10 +24,9 @@ public class DispatchCreateRequest {
 
     private String siteDetail;
 
-    @NotNull(message = "위도는 필수입니다")
+    // 좌표는 주소 검색을 통해 자동 설정됨 (선택적)
     private Double latitude;
 
-    @NotNull(message = "경도는 필수입니다")
     private Double longitude;
 
     private String contactName;

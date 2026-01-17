@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { getMyDispatches, getAllDispatches, createDispatch } from '../api/dispatch';
+import { createRating, RatingRequest } from '../api/rating';
 import {
   Dispatch,
   CreateDispatchRequest,
@@ -10,14 +11,18 @@ import {
   EquipmentType,
   EquipmentTypeLabels,
 } from '../types';
-import { Plus, X, MapPin, Clock, Loader2 } from 'lucide-react';
+import { Plus, X, MapPin, Clock, Loader2, Search, Star, AlertCircle } from 'lucide-react';
 import dayjs from 'dayjs';
+import { useKakaoAddress, AddressResult } from '../hooks/useKakaoAddress';
+import { useEffect } from 'react';
 
 export default function DispatchesPage() {
   const { user } = useAuthStore();
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedDispatch, setSelectedDispatch] = useState<Dispatch | null>(null);
   const [filter, setFilter] = useState<DispatchStatus | 'ALL'>('ALL');
 
   const isAdmin = user?.role === UserRole.ADMIN;
@@ -54,6 +59,28 @@ export default function DispatchesPage() {
       }
     } catch (error) {
       console.error('Failed to create dispatch:', error);
+    }
+  };
+
+  const handleRateDriver = (dispatch: Dispatch) => {
+    setSelectedDispatch(dispatch);
+    setShowRatingModal(true);
+  };
+
+  const handleSubmitRating = async (rating: number, comment?: string) => {
+    if (!selectedDispatch) return;
+
+    try {
+      const response = await createRating(selectedDispatch.id, { rating, comment });
+      if (response.success) {
+        setShowRatingModal(false);
+        setSelectedDispatch(null);
+        fetchDispatches();
+        alert('평가가 등록되었습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to submit rating:', error);
+      alert('평가 등록에 실패했습니다.');
     }
   };
 
@@ -101,7 +128,11 @@ export default function DispatchesPage() {
       ) : (
         <div className="grid gap-4">
           {filteredDispatches.map((dispatch) => (
-            <DispatchCard key={dispatch.id} dispatch={dispatch} />
+            <DispatchCard
+              key={dispatch.id}
+              dispatch={dispatch}
+              onRate={() => handleRateDriver(dispatch)}
+            />
           ))}
         </div>
       )}
@@ -111,6 +142,18 @@ export default function DispatchesPage() {
         <CreateDispatchModal
           onClose={() => setShowModal(false)}
           onSubmit={handleCreateDispatch}
+        />
+      )}
+
+      {/* Rating Modal */}
+      {showRatingModal && selectedDispatch && (
+        <RatingModal
+          dispatch={selectedDispatch}
+          onClose={() => {
+            setShowRatingModal(false);
+            setSelectedDispatch(null);
+          }}
+          onSubmit={handleSubmitRating}
         />
       )}
     </div>
@@ -142,12 +185,28 @@ function FilterButton({
   );
 }
 
-function DispatchCard({ dispatch }: { dispatch: Dispatch }) {
+function DispatchCard({
+  dispatch,
+  onRate
+}: {
+  dispatch: Dispatch;
+  onRate: () => void;
+}) {
+  const canRate = dispatch.status === DispatchStatus.COMPLETED &&
+                  dispatch.match &&
+                  !dispatch.rating;
+
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
+            {dispatch.isUrgent && (
+              <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded flex items-center gap-1">
+                <AlertCircle size={12} />
+                긴급
+              </span>
+            )}
             <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
               {EquipmentTypeLabels[dispatch.equipmentType]}
             </span>
@@ -181,12 +240,150 @@ function DispatchCard({ dispatch }: { dispatch: Dispatch }) {
           </div>
 
           {dispatch.match && (
-            <div className="mt-3 pt-3 border-t text-sm">
-              <span className="text-gray-500">배정 기사:</span>{' '}
-              <span className="font-medium">{dispatch.match.driver.user.name}</span>
+            <div className="mt-3 pt-3 border-t text-sm flex items-center justify-between">
+              <div>
+                <span className="text-gray-500">배정 기사:</span>{' '}
+                <span className="font-medium">{dispatch.match.driver.user.name}</span>
+              </div>
+              {dispatch.rating && (
+                <div className="flex items-center gap-1 text-yellow-500">
+                  <Star size={16} fill="currentColor" />
+                  <span className="font-medium">{dispatch.rating.rating}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {canRate && (
+          <button
+            onClick={onRate}
+            className="ml-4 px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors flex items-center gap-1"
+          >
+            <Star size={16} />
+            평가하기
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RatingModal({
+  dispatch,
+  onClose,
+  onSubmit,
+}: {
+  dispatch: Dispatch;
+  onClose: () => void;
+  onSubmit: (rating: number, comment?: string) => Promise<void>;
+}) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    await onSubmit(rating, comment || undefined);
+    setLoading(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="p-6 border-b flex items-center justify-between">
+          <h2 className="text-xl font-semibold">기사 평가</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              기사: <span className="font-medium text-gray-900">{dispatch.match?.driver.user.name}</span>
+            </p>
+            <p className="text-sm text-gray-600">
+              작업 장소: <span className="font-medium text-gray-900">{dispatch.siteAddress}</span>
+            </p>
+          </div>
+
+          <div className="text-center">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              별점을 선택해주세요
+            </label>
+            <div className="flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoveredStar(star)}
+                  onMouseLeave={() => setHoveredStar(null)}
+                  className="p-1 transition-transform hover:scale-110"
+                >
+                  <Star
+                    size={36}
+                    className={`transition-colors ${
+                      (hoveredStar !== null ? star <= hoveredStar : star <= rating)
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <p className="text-lg font-medium text-gray-900 mt-2">
+              {rating === 1 && '매우 불만족'}
+              {rating === 2 && '불만족'}
+              {rating === 3 && '보통'}
+              {rating === 4 && '만족'}
+              {rating === 5 && '매우 만족'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              코멘트 (선택)
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              rows={3}
+              placeholder="작업에 대한 평가를 남겨주세요"
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  등록 중...
+                </>
+              ) : (
+                <>
+                  <Star size={16} />
+                  평가 등록
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -207,6 +404,18 @@ function CreateDispatchModal({
     equipmentType: EquipmentType.HIGH_LIFT_TRUCK,
     priceNegotiable: true,
   });
+  const { openAddressSearch } = useKakaoAddress();
+
+  const handleAddressSearch = () => {
+    openAddressSearch((result: AddressResult) => {
+      setFormData((prev) => ({
+        ...prev,
+        siteAddress: result.address,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      }));
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,27 +426,47 @@ function CreateDispatchModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold">배차 등록</h2>
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b flex items-center justify-between">
+          <h2 className="text-xl font-semibold">배차 등록</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               현장 주소 *
             </label>
-            <input
-              type="text"
-              value={formData.siteAddress}
-              onChange={(e) => setFormData({ ...formData, siteAddress: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="서울시 강남구 테헤란로 123"
-              required
-            />
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.siteAddress}
+                  readOnly
+                  className="w-full pl-10 pr-3 py-2 border rounded-lg bg-gray-50 cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="주소를 검색하세요"
+                  onClick={handleAddressSearch}
+                  required
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleAddressSearch}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2"
+              >
+                <Search size={18} />
+                검색
+              </button>
+            </div>
+            {formData.latitude && formData.longitude && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                좌표 확인됨: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+              </p>
+            )}
           </div>
 
           <div>

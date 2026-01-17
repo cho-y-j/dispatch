@@ -7,9 +7,14 @@ import { useFcm } from './hooks/useFcm';
 
 import MainLayout from './layouts/MainLayout';
 import LoginPage from './pages/LoginPage';
+import CompanyRegistrationPage from './pages/CompanyRegistrationPage';
 import DashboardPage from './pages/DashboardPage';
 import DispatchesPage from './pages/DispatchesPage';
 import DriversPage from './pages/DriversPage';
+import CompaniesPage from './pages/CompaniesPage';
+import WarningsPage from './pages/WarningsPage';
+import StatisticsPage from './pages/StatisticsPage';
+import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
@@ -83,6 +88,14 @@ function App() {
             </PublicRoute>
           }
         />
+        <Route
+          path="/register/company"
+          element={
+            <PublicRoute>
+              <CompanyRegistrationPage />
+            </PublicRoute>
+          }
+        />
 
         {/* Protected Routes */}
         <Route
@@ -101,6 +114,38 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <DriversPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="companies"
+            element={
+              <ProtectedRoute adminOnly>
+                <CompaniesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="warnings"
+            element={
+              <ProtectedRoute adminOnly>
+                <WarningsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="statistics"
+            element={
+              <ProtectedRoute adminOnly>
+                <StatisticsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <ProtectedRoute adminOnly>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

@@ -5,6 +5,10 @@ import {
   LayoutDashboard,
   FileText,
   Users,
+  Building2,
+  AlertTriangle,
+  BarChart3,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -32,7 +36,13 @@ export default function MainLayout() {
   const menuItems = [
     { path: '/dashboard', label: '대시보드', icon: LayoutDashboard },
     { path: '/dispatches', label: '배차 관리', icon: FileText },
-    ...(isAdmin ? [{ path: '/drivers', label: '기사 승인', icon: Users }] : []),
+    ...(isAdmin ? [
+      { path: '/drivers', label: '기사 관리', icon: Users },
+      { path: '/companies', label: '발주처 관리', icon: Building2 },
+      { path: '/warnings', label: '경고/정지 관리', icon: AlertTriangle },
+      { path: '/statistics', label: '통계', icon: BarChart3 },
+      { path: '/settings', label: '설정', icon: Settings },
+    ] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;

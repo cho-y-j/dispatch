@@ -29,8 +29,8 @@ public class DispatchController {
     // ========== 직원용 API ==========
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    @Operation(summary = "배차 등록", description = "새로운 배차를 등록합니다 (직원/관리자)")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'COMPANY')")
+    @Operation(summary = "배차 등록", description = "새로운 배차를 등록합니다 (직원/관리자/발주처)")
     public ResponseEntity<ApiResponse<DispatchResponse>> createDispatch(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody DispatchCreateRequest request) {
@@ -42,8 +42,8 @@ public class DispatchController {
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
-    @Operation(summary = "내가 등록한 배차 목록", description = "직원 본인이 등록한 배차 목록을 조회합니다")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'COMPANY')")
+    @Operation(summary = "내가 등록한 배차 목록", description = "본인이 등록한 배차 목록을 조회합니다")
     public ResponseEntity<ApiResponse<List<DispatchResponse>>> getMyDispatches(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
@@ -164,7 +164,7 @@ public class DispatchController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('STAFF', 'ADMIN', 'COMPANY')")
     @Operation(summary = "배차 취소", description = "배차를 취소합니다")
     public ResponseEntity<ApiResponse<DispatchResponse>> cancelDispatch(
             @AuthenticationPrincipal CustomUserDetails userDetails,

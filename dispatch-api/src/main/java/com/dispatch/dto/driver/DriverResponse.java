@@ -36,6 +36,13 @@ public class DriverResponse {
     private Double longitude;
     private Boolean isActive;
 
+    // 등급 시스템
+    private Driver.DriverGrade grade;
+    private Double averageRating;
+    private Integer totalRatings;
+    private Integer totalCompletedDispatches;
+    private Integer warningCount;
+
     private List<EquipmentInfo> equipments;
 
     private LocalDateTime createdAt;
@@ -86,6 +93,11 @@ public class DriverResponse {
                 .latitude(driver.getLatitude())
                 .longitude(driver.getLongitude())
                 .isActive(driver.getIsActive())
+                .grade(driver.getGrade())
+                .averageRating(driver.getAverageRating())
+                .totalRatings(driver.getTotalRatings())
+                .totalCompletedDispatches(driver.getTotalCompletedDispatches())
+                .warningCount(driver.getWarningCount())
                 .equipments(equipmentInfos)
                 .createdAt(driver.getCreatedAt())
                 .approvedAt(driver.getApprovedAt())

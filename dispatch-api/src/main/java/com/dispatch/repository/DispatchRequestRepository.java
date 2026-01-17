@@ -39,4 +39,10 @@ public interface DispatchRequestRepository extends JpaRepository<DispatchRequest
             @Param("lng") Double longitude,
             @Param("radius") Double radiusKm,
             @Param("today") LocalDate today);
+
+    @Query("SELECT d FROM DispatchRequest d WHERE d.company.id = :companyId ORDER BY d.createdAt DESC")
+    List<DispatchRequest> findByCompanyId(@Param("companyId") Long companyId);
+
+    @Query("SELECT d FROM DispatchRequest d WHERE d.staff.id = :staffId ORDER BY d.createdAt DESC")
+    List<DispatchRequest> findByStaffId(@Param("staffId") Long staffId);
 }

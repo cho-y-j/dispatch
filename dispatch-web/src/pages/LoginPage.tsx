@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { Loader2 } from 'lucide-react';
 
@@ -89,11 +89,19 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            기사 계정은{' '}
-            <span className="text-blue-600 font-medium">모바일 앱</span>
-            을 이용해주세요.
-          </p>
+          <div className="text-center text-sm text-gray-500 mt-6 space-y-2">
+            <p>
+              발주처 회원가입이 필요하신가요?{' '}
+              <Link to="/register/company" className="text-blue-600 font-medium hover:underline">
+                회원가입
+              </Link>
+            </p>
+            <p>
+              기사 계정은{' '}
+              <span className="text-blue-600 font-medium">모바일 앱</span>
+              을 이용해주세요.
+            </p>
+          </div>
         </div>
       </div>
     </div>

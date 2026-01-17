@@ -3,6 +3,7 @@ export enum UserRole {
   DRIVER = 'DRIVER',
   STAFF = 'STAFF',
   ADMIN = 'ADMIN',
+  COMPANY = 'COMPANY',
 }
 
 export enum UserStatus {
@@ -50,6 +51,10 @@ export interface Driver {
   isActive: boolean;
   equipments: Equipment[];
   createdAt: string;
+  grade?: DriverGrade;
+  averageRating?: number;
+  totalRatings: number;
+  warningCount: number;
 }
 
 // 장비 타입
@@ -155,6 +160,8 @@ export interface Dispatch {
   contactPhone?: string;
   status: DispatchStatus;
   match?: DispatchMatch;
+  rating?: DriverRating;
+  isUrgent?: boolean;
   createdAt: string;
 }
 
@@ -163,6 +170,214 @@ export interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data?: T;
+}
+
+// 발주처 관련 타입
+export enum CompanyStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  SUSPENDED = 'SUSPENDED',
+  BANNED = 'BANNED',
+}
+
+export const CompanyStatusLabels: Record<CompanyStatus, string> = {
+  [CompanyStatus.PENDING]: '승인 대기',
+  [CompanyStatus.APPROVED]: '승인됨',
+  [CompanyStatus.SUSPENDED]: '정지됨',
+  [CompanyStatus.BANNED]: '퇴장',
+};
+
+export interface Company {
+  id: number;
+  name: string;
+  businessNumber: string;
+  businessLicenseImage?: string;
+  representative: string;
+  address?: string;
+  phone?: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  status: CompanyStatus;
+  verificationStatus: VerificationStatus;
+  verificationMessage?: string;
+  warningCount: number;
+  employeeCount: number;
+  createdAt: string;
+  approvedAt?: string;
+}
+
+// 기사 등급 관련 타입
+export enum DriverGrade {
+  GRADE_1 = 'GRADE_1',
+  GRADE_2 = 'GRADE_2',
+  GRADE_3 = 'GRADE_3',
+}
+
+export const DriverGradeLabels: Record<DriverGrade, string> = {
+  [DriverGrade.GRADE_1]: '1등급',
+  [DriverGrade.GRADE_2]: '2등급',
+  [DriverGrade.GRADE_3]: '3등급',
+};
+
+// 경고 관련 타입
+export enum WarningUserType {
+  DRIVER = 'DRIVER',
+  COMPANY = 'COMPANY',
+}
+
+export enum WarningType {
+  CANCEL = 'CANCEL',
+  LATE = 'LATE',
+  RUDE = 'RUDE',
+  SAFETY = 'SAFETY',
+  NO_SHOW = 'NO_SHOW',
+  OTHER = 'OTHER',
+}
+
+export const WarningTypeLabels: Record<WarningType, string> = {
+  [WarningType.CANCEL]: '무단 취소',
+  [WarningType.LATE]: '지각',
+  [WarningType.RUDE]: '불친절',
+  [WarningType.SAFETY]: '안전 문제',
+  [WarningType.NO_SHOW]: '미출근',
+  [WarningType.OTHER]: '기타',
+};
+
+export interface Warning {
+  id: number;
+  userId: number;
+  userName?: string;
+  userType: WarningUserType;
+  type: WarningType;
+  reason: string;
+  dispatchId?: number;
+  createdBy: number;
+  createdByName?: string;
+  createdAt: string;
+}
+
+// 정지 관련 타입
+export enum SuspensionType {
+  TEMP = 'TEMP',
+  PERMANENT = 'PERMANENT',
+}
+
+export const SuspensionTypeLabels: Record<SuspensionType, string> = {
+  [SuspensionType.TEMP]: '일시 정지',
+  [SuspensionType.PERMANENT]: '영구 정지',
+};
+
+export interface Suspension {
+  id: number;
+  userId: number;
+  userName?: string;
+  userType: WarningUserType;
+  type: SuspensionType;
+  reason: string;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+  createdBy: number;
+  createdByName?: string;
+  createdAt: string;
+  liftedBy?: number;
+  liftedAt?: string;
+}
+
+// 평가 관련 타입
+export interface DriverRating {
+  id: number;
+  dispatchId: number;
+  driverId: number;
+  driverName?: string;
+  companyId?: number;
+  companyName?: string;
+  raterUserId: number;
+  raterName?: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+// 채팅 관련 타입
+export enum SenderType {
+  DRIVER = 'DRIVER',
+  COMPANY = 'COMPANY',
+}
+
+export interface ChatMessage {
+  id: number;
+  dispatchId: number;
+  senderId: number;
+  senderName?: string;
+  senderType: SenderType;
+  message: string;
+  imageUrl?: string;
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
+}
+
+// 통계 관련 타입
+export interface DailyStats {
+  date: string;
+  dispatches: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface DashboardStatistics {
+  totalDispatches: number;
+  totalDrivers: number;
+  totalCompanies: number;
+  todayDispatches: number;
+  todayCompleted: number;
+  todayCancelled: number;
+  dispatchesByStatus: Record<string, number>;
+  dailyStats: DailyStats[];
+  pendingDrivers: number;
+  pendingCompanies: number;
+  completionRate: number;
+  averageMatchingTimeMinutes?: number;
+}
+
+export interface DriverStatistics {
+  driverId: number;
+  driverName: string;
+  phone: string;
+  grade: DriverGrade;
+  averageRating: number;
+  totalRatings: number;
+  totalDispatches: number;
+  completedDispatches: number;
+  cancelledDispatches: number;
+  warningCount: number;
+  isActive: boolean;
+  verificationStatus: VerificationStatus;
+}
+
+export interface CompanyStatistics {
+  companyId: number;
+  companyName: string;
+  businessNumber: string;
+  status: CompanyStatus;
+  totalDispatches: number;
+  completedDispatches: number;
+  cancelledDispatches: number;
+  totalAmount: number;
+  warningCount: number;
+  employeeCount: number;
+}
+
+// 시스템 설정 타입
+export interface SystemSetting {
+  id: number;
+  settingKey: string;
+  settingValue: string;
+  description?: string;
+  updatedBy?: number;
+  updatedAt: string;
 }
 
 // 배차 생성 요청
