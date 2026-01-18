@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../models/user.dart';
 import 'driver_registration_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -107,6 +108,33 @@ class ProfileScreen extends StatelessWidget {
                     );
                   },
                 ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('로그아웃', style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('로그아웃'),
+                        content: const Text('로그아웃 하시겠습니까?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('취소'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) {
+                      await context.read<AuthProvider>().logout();
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -115,44 +143,42 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(status) {
-    switch (status.name) {
-      case 'APPROVED':
+  Color _getStatusColor(UserStatus status) {
+    switch (status) {
+      case UserStatus.APPROVED:
         return Colors.green;
-      case 'PENDING':
+      case UserStatus.PENDING:
         return Colors.orange;
-      case 'REJECTED':
+      case UserStatus.REJECTED:
         return Colors.red;
-      default:
+      case UserStatus.SUSPENDED:
         return Colors.grey;
     }
   }
 
-  String _getStatusText(status) {
-    switch (status.name) {
-      case 'APPROVED':
+  String _getStatusText(UserStatus status) {
+    switch (status) {
+      case UserStatus.APPROVED:
         return '승인됨';
-      case 'PENDING':
+      case UserStatus.PENDING:
         return '승인 대기';
-      case 'REJECTED':
+      case UserStatus.REJECTED:
         return '거절됨';
-      case 'SUSPENDED':
+      case UserStatus.SUSPENDED:
         return '정지됨';
-      default:
-        return '알 수 없음';
     }
   }
 
-  String _getRoleText(role) {
-    switch (role.name) {
-      case 'DRIVER':
+  String _getRoleText(UserRole role) {
+    switch (role) {
+      case UserRole.DRIVER:
         return '기사';
-      case 'STAFF':
+      case UserRole.STAFF:
         return '직원';
-      case 'ADMIN':
+      case UserRole.ADMIN:
         return '관리자';
-      default:
-        return '알 수 없음';
+      case UserRole.COMPANY:
+        return '발주처';
     }
   }
 }

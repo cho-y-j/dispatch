@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getAllDrivers, getPendingDrivers, approveDriver, rejectDriver, updateDriverGrade } from '../api/admin';
 import { Driver, VerificationStatus, EquipmentTypeLabels, DriverGrade, DriverGradeLabels } from '../types';
-import { Check, X, Loader2, FileText, User, Phone, Mail, Star, Award, AlertTriangle } from 'lucide-react';
+import { Check, X, Loader2, FileText, User, Phone, Mail, Star, Award, AlertTriangle, Eye } from 'lucide-react';
 import dayjs from 'dayjs';
 
 type TabType = 'all' | 'pending';
@@ -12,6 +12,7 @@ export default function DriversPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [showGradeModal, setShowGradeModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
   const fetchDrivers = async () => {
@@ -70,6 +71,11 @@ export default function DriversPage() {
   const handleGradeChange = (driver: Driver) => {
     setSelectedDriver(driver);
     setShowGradeModal(true);
+  };
+
+  const handleViewDetail = (driver: Driver) => {
+    setSelectedDriver(driver);
+    setShowDetailModal(true);
   };
 
   const handleGradeUpdate = async (driverId: number, grade: DriverGrade, reason?: string) => {
@@ -155,6 +161,7 @@ export default function DriversPage() {
                   key={driver.id}
                   driver={driver}
                   onGradeChange={() => handleGradeChange(driver)}
+                  onViewDetail={() => handleViewDetail(driver)}
                 />
               ))}
             </tbody>
@@ -172,6 +179,16 @@ export default function DriversPage() {
           onSubmit={handleGradeUpdate}
         />
       )}
+
+      {showDetailModal && selectedDriver && (
+        <DriverDetailModal
+          driver={selectedDriver}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedDriver(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -179,9 +196,11 @@ export default function DriversPage() {
 function DriverRow({
   driver,
   onGradeChange,
+  onViewDetail,
 }: {
   driver: Driver;
   onGradeChange: () => void;
+  onViewDetail: () => void;
 }) {
   const getGradeStyle = (grade?: DriverGrade) => {
     switch (grade) {
@@ -204,8 +223,8 @@ function DriverRow({
             <User size={20} className="text-blue-600" />
           </div>
           <div className="ml-3">
-            <p className="text-sm font-medium text-gray-900">{driver.user?.name || '-'}</p>
-            <p className="text-sm text-gray-500">{driver.user?.phone || '-'}</p>
+            <p className="text-sm font-medium text-gray-900">{driver.name || '-'}</p>
+            <p className="text-sm text-gray-500">{driver.phone || '-'}</p>
           </div>
         </div>
       </td>
@@ -248,15 +267,24 @@ function DriverRow({
         )}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right">
-        {driver.verificationStatus === VerificationStatus.VERIFIED && (
+        <div className="flex items-center gap-2 justify-end">
           <button
-            onClick={onGradeChange}
-            className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center gap-1 ml-auto"
+            onClick={onViewDetail}
+            className="text-gray-600 hover:text-gray-900 text-sm font-medium flex items-center gap-1"
           >
-            <Award size={16} />
-            등급 변경
+            <Eye size={16} />
+            상세
           </button>
-        )}
+          {driver.verificationStatus === VerificationStatus.VERIFIED && (
+            <button
+              onClick={onGradeChange}
+              className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center gap-1"
+            >
+              <Award size={16} />
+              등급 변경
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -282,7 +310,7 @@ function PendingDriverCard({
               <User size={24} className="text-blue-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">{driver.user?.name || '-'}</h3>
+              <h3 className="font-semibold text-lg">{driver.name || '-'}</h3>
               <p className="text-sm text-gray-500">
                 가입일: {dayjs(driver.createdAt).format('YYYY-MM-DD')}
               </p>
@@ -292,11 +320,11 @@ function PendingDriverCard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2 text-gray-600">
               <Mail size={16} />
-              {driver.user?.email || '-'}
+              {driver.email || '-'}
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Phone size={16} />
-              {driver.user?.phone || '-'}
+              {driver.phone || '-'}
             </div>
           </div>
 
@@ -390,7 +418,7 @@ function GradeChangeModal({
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold mb-4">기사 등급 변경</h2>
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">기사: <span className="font-medium text-gray-900">{driver.user?.name}</span></p>
+          <p className="text-sm text-gray-600">기사: <span className="font-medium text-gray-900">{driver.name}</span></p>
           <p className="text-sm text-gray-600">현재 등급: <span className="font-medium text-gray-900">{driver.grade ? DriverGradeLabels[driver.grade] : '미설정'}</span></p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -488,4 +516,147 @@ function getVerificationLabel(status: VerificationStatus) {
     default:
       return status;
   }
+}
+
+function DriverDetailModal({
+  driver,
+  onClose,
+}: {
+  driver: Driver;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold">기사 상세 정보</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* 기본 정보 */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3 pb-2 border-b">기본 정보</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-500">이름</label>
+              <p className="font-medium">{driver.name || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">이메일</label>
+              <p className="font-medium">{driver.email || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">전화번호</label>
+              <p className="font-medium">{driver.phone || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">등급</label>
+              <p className="font-medium">{driver.grade ? DriverGradeLabels[driver.grade] : '미설정'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">평점</label>
+              <p className="font-medium flex items-center gap-1">
+                <Star size={16} className="text-yellow-500" />
+                {driver.averageRating?.toFixed(1) || '0.0'} ({driver.totalRatings}건)
+              </p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">완료 건수</label>
+              <p className="font-medium">{driver.totalCompletedDispatches || 0}건</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">경고 횟수</label>
+              <p className="font-medium">{driver.warningCount || 0}회</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">상태</label>
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getVerificationStyle(driver.verificationStatus)}`}>
+                {getVerificationLabel(driver.verificationStatus)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 사업자 정보 */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3 pb-2 border-b">사업자 정보</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-500">사업자등록번호</label>
+              <p className="font-medium">{driver.businessRegistrationNumber || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">상호명</label>
+              <p className="font-medium">{driver.businessName || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">운전면허번호</label>
+              <p className="font-medium">{driver.driverLicenseNumber || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">서류 상태</label>
+              <div className="flex gap-2">
+                <span className={`text-xs ${driver.businessRegistrationImage ? 'text-green-600' : 'text-gray-400'}`}>
+                  사업자등록증 {driver.businessRegistrationImage ? '✓' : '✗'}
+                </span>
+                <span className={`text-xs ${driver.driverLicenseImage ? 'text-green-600' : 'text-gray-400'}`}>
+                  운전면허증 {driver.driverLicenseImage ? '✓' : '✗'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 장비 정보 */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3 pb-2 border-b">보유 장비</h3>
+          {driver.equipments && driver.equipments.length > 0 ? (
+            <div className="space-y-2">
+              {driver.equipments.map((eq, idx) => (
+                <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">{EquipmentTypeLabels[eq.type] || eq.type}</p>
+                  <div className="text-sm text-gray-600">
+                    {eq.model && <span>모델: {eq.model}</span>}
+                    {eq.tonnage && <span className="ml-3">톤수: {eq.tonnage}</span>}
+                    {eq.vehicleNumber && <span className="ml-3">차량번호: {eq.vehicleNumber}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">등록된 장비가 없습니다</p>
+          )}
+        </div>
+
+        {/* 가입일/승인일 */}
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-3 pb-2 border-b">가입 정보</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm text-gray-500">가입일</label>
+              <p className="font-medium">{dayjs(driver.createdAt).format('YYYY-MM-DD HH:mm')}</p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-500">승인일</label>
+              <p className="font-medium">{driver.approvedAt ? dayjs(driver.approvedAt).format('YYYY-MM-DD HH:mm') : '-'}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

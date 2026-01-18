@@ -1,6 +1,69 @@
 # 배차 시스템 개발 진행 상황
 
-## 2026-01-18 (토) 작업 내용
+## 2026-01-18 (토) 오후 작업 내용
+
+### 버그 수정 및 기능 개선
+
+#### 1. 회원가입 시 Driver 엔티티 자동 생성
+- **AuthService.java** 수정
+  - DRIVER 역할 회원가입 시 Driver 엔티티 자동 생성
+  - `verificationStatus: PENDING`, `grade: GRADE_3`, `isActive: false` 설정
+
+#### 2. DriverService 업데이트
+- **DriverService.java** 수정
+  - `register()` 메서드: 기존 Driver가 있으면 업데이트, 없으면 새로 생성
+  - 장비 정보 등록 로직 개선
+
+#### 3. 웹 관리자 기사 관리 개선
+- **DriversPage.tsx** 수정
+  - 기사 목록에 이름/전화번호/이메일 표시 (API 응답 필드 매핑 수정)
+  - **기사 상세보기 모달 추가**: 기본정보, 사업자정보, 장비, 가입정보 표시
+  - 전체 기사 탭에 "상세" 버튼 추가
+- **types/index.ts** 수정
+  - Driver 인터페이스에 `name`, `email`, `phone`, `userId` 필드 추가
+
+#### 4. 앱 프로필 화면 수정
+- **profile_screen.dart** 수정
+  - enum 비교 방식 수정 (`status.name` → `UserStatus.APPROVED` 직접 비교)
+  - `UserStatus`, `UserRole` import 추가
+- **auth_provider.dart** 수정
+  - `checkAuthStatus()`: API 응답에서 User 정보 올바르게 파싱
+  - `_parseUserStatus()` 헬퍼 메서드 추가
+
+#### 5. 로그아웃 기능 추가
+- **profile_screen.dart** - 기사 프로필에 로그아웃 버튼 추가
+- **company_profile_screen.dart** - 발주처 프로필에 로그아웃 버튼 추가
+- 확인 다이얼로그 포함
+
+---
+
+### API 배차 플로우 테스트 완료 ✅
+
+| 단계 | 기능 | 결과 |
+|------|------|------|
+| 1 | 발주처 로그인 | ✅ 성공 |
+| 2 | 배차 등록 | ✅ 성공 (서울시 강남구 테헤란로 123) |
+| 3 | 기사 로그인 | ✅ 성공 |
+| 4 | 가용 배차 조회 | ✅ 성공 |
+| 5 | 배차 수락 | ✅ 성공 (MATCHED) |
+| 6 | 현장 출발 | ✅ 성공 (EN_ROUTE) |
+| 7 | 현장 도착 | ✅ 성공 (ARRIVED) |
+| 8 | 작업 시작 | ✅ 성공 (WORKING) |
+| 9 | 작업 완료 | ✅ 성공 (COMPLETED) |
+| 10 | 기사 서명 | ✅ 성공 |
+| 11 | 고객 서명 | ✅ 성공 (SIGNED) |
+| 12 | 기사 평가 | ✅ 성공 (5점) |
+
+### 테스트 계정
+| 역할 | 이메일 | 비밀번호 |
+|------|--------|----------|
+| 발주처 | company@test.com | test12345678 |
+| 기사 | driver@test.com | test12345678 |
+| 관리자 | admin@test.com | test12345678 |
+
+---
+
+## 2026-01-18 (토) 오전 작업 내용
 
 ### Phase 4: 통합 앱 (기사 + 발주자) - 완료
 
@@ -91,10 +154,6 @@ class AppConfig {
 - [ ] 마커 클릭 → 하단 시트 → 길안내 버튼 동작 확인
 - [ ] 카카오내비/카카오맵 웹 연동 테스트
 
-### Phase 4 남은 작업
-- [ ] 발주처 앱 기능 테스트 (배차 등록, 목록 확인)
-- [ ] 기사 위치 추적 기능 (발주처에서 기사 위치 확인)
-
 ### Phase 5: 채팅 + 통계
 - [ ] 백엔드: 채팅 메시지 엔티티 + WebSocket
 - [ ] 앱/웹: 인앱 채팅 UI
@@ -105,6 +164,7 @@ class AppConfig {
 - [ ] Firebase 설정 (FCM 푸시 알림)
 - [ ] iOS 시뮬레이터 테스트
 - [ ] 실제 기기 테스트
+- [ ] 에뮬레이터 한글 키보드 설정
 
 ---
 

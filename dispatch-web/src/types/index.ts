@@ -40,20 +40,28 @@ export enum VerificationStatus {
 
 export interface Driver {
   id: number;
-  user: User;
+  userId: number;
+  name: string;
+  email: string;
+  phone: string;
+  user?: User;  // optional for backward compatibility
   businessRegistrationNumber?: string;
+  businessName?: string;
   businessRegistrationImage?: string;
   driverLicenseNumber?: string;
   driverLicenseImage?: string;
   verificationStatus: VerificationStatus;
+  verificationMessage?: string;
   latitude?: number;
   longitude?: number;
   isActive: boolean;
   equipments: Equipment[];
   createdAt: string;
+  approvedAt?: string;
   grade?: DriverGrade;
   averageRating?: number;
   totalRatings: number;
+  totalCompletedDispatches?: number;
   warningCount: number;
 }
 

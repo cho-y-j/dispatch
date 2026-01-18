@@ -119,6 +119,37 @@ class CompanyProfileScreen extends StatelessWidget {
               ),
             ),
 
+          // 로그아웃 버튼
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('로그아웃', style: TextStyle(color: Colors.red)),
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('로그아웃'),
+                    content: const Text('로그아웃 하시겠습니까?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('취소'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await context.read<AuthProvider>().logout();
+                }
+              },
+            ),
+          ),
+
           // 앱 버전
           const SizedBox(height: 24),
           Text(

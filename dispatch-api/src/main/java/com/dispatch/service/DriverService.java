@@ -46,9 +46,9 @@ public class DriverService {
             throw CustomException.badRequest("기사 역할의 사용자만 등록할 수 있습니다");
         }
 
-        if (driverRepository.findByUserId(userId).isPresent()) {
-            throw CustomException.conflict("이미 기사 등록이 되어있습니다");
-        }
+        // 기존 기사 정보가 있으면 업데이트, 없으면 새로 생성
+        Driver driver = driverRepository.findByUserId(userId).orElse(null);
+        boolean isUpdate = driver != null;
 
         // 사업자등록번호 검증
         String verificationMessage = null;
@@ -64,34 +64,43 @@ public class DriverService {
             }
         }
 
-        // 기사 정보 생성
-        Driver driver = Driver.builder()
-                .user(user)
-                .businessRegistrationNumber(request.getBusinessRegistrationNumber())
-                .businessName(request.getBusinessName())
-                .driverLicenseNumber(request.getDriverLicenseNumber())
-                .verificationStatus(Driver.VerificationStatus.PENDING)
-                .verificationMessage(verificationMessage)
-                .isActive(false)
-                .build();
+        if (isUpdate) {
+            // 기존 기사 정보 업데이트
+            driver.setBusinessRegistrationNumber(request.getBusinessRegistrationNumber());
+            driver.setBusinessName(request.getBusinessName());
+            driver.setDriverLicenseNumber(request.getDriverLicenseNumber());
+            driver.setVerificationMessage(verificationMessage);
+            log.info("Driver updated: userId={}, driverId={}", userId, driver.getId());
+        } else {
+            // 기사 정보 생성
+            driver = Driver.builder()
+                    .user(user)
+                    .businessRegistrationNumber(request.getBusinessRegistrationNumber())
+                    .businessName(request.getBusinessName())
+                    .driverLicenseNumber(request.getDriverLicenseNumber())
+                    .verificationStatus(Driver.VerificationStatus.PENDING)
+                    .verificationMessage(verificationMessage)
+                    .isActive(false)
+                    .build();
+            driverRepository.save(driver);
+            log.info("Driver registered: userId={}, driverId={}", userId, driver.getId());
+        }
 
-        driverRepository.save(driver);
+        // 장비 정보 생성 (기존에 없는 경우)
+        if (request.getEquipmentType() != null && driver.getEquipments().isEmpty()) {
+            Equipment equipment = Equipment.builder()
+                    .driver(driver)
+                    .type(request.getEquipmentType())
+                    .model(request.getEquipmentModel())
+                    .tonnage(request.getTonnage())
+                    .maxHeight(request.getMaxHeight())
+                    .vehicleNumber(request.getVehicleNumber())
+                    .status(Equipment.EquipmentStatus.ACTIVE)
+                    .build();
 
-        // 장비 정보 생성
-        Equipment equipment = Equipment.builder()
-                .driver(driver)
-                .type(request.getEquipmentType())
-                .model(request.getEquipmentModel())
-                .tonnage(request.getTonnage())
-                .maxHeight(request.getMaxHeight())
-                .vehicleNumber(request.getVehicleNumber())
-                .status(Equipment.EquipmentStatus.ACTIVE)
-                .build();
-
-        equipmentRepository.save(equipment);
-        driver.getEquipments().add(equipment);
-
-        log.info("Driver registered: userId={}, driverId={}", userId, driver.getId());
+            equipmentRepository.save(equipment);
+            driver.getEquipments().add(equipment);
+        }
 
         return DriverResponse.from(driver);
     }

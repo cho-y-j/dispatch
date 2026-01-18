@@ -3,8 +3,10 @@ package com.dispatch.service;
 import com.dispatch.dto.auth.AuthResponse;
 import com.dispatch.dto.auth.LoginRequest;
 import com.dispatch.dto.auth.RegisterRequest;
+import com.dispatch.entity.Driver;
 import com.dispatch.entity.User;
 import com.dispatch.exception.CustomException;
+import com.dispatch.repository.DriverRepository;
 import com.dispatch.repository.UserRepository;
 import com.dispatch.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final DriverRepository driverRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
@@ -56,6 +59,18 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+
+        // DRIVER 역할인 경우 Driver 엔티티도 생성
+        if (role == User.UserRole.DRIVER) {
+            Driver driver = Driver.builder()
+                    .user(user)
+                    .verificationStatus(Driver.VerificationStatus.PENDING)
+                    .grade(Driver.DriverGrade.GRADE_3)
+                    .isActive(false)
+                    .build();
+            driverRepository.save(driver);
+            log.info("Driver entity created for user: {}", user.getEmail());
+        }
 
         log.info("New user registered: {} ({})", user.getEmail(), user.getRole());
 

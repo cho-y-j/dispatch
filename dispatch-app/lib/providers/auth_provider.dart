@@ -69,7 +69,8 @@ class AuthProvider with ChangeNotifier {
         _error = response.data['message'];
       }
     } catch (e) {
-      _error = '회원가입에 실패했습니다';
+      debugPrint('회원가입 에러: $e');
+      _error = '회원가입에 실패했습니다: $e';
     }
 
     _isLoading = false;
@@ -147,12 +148,22 @@ class AuthProvider with ChangeNotifier {
         final response = await _apiService.getProfile();
         if (response.data['success']) {
           _token = accessToken;
-          _user = User.fromJson(response.data['data']['user']);
+          // 프로필 응답에서 User 정보 생성
+          final data = response.data['data'];
+          _user = User(
+            id: data['userId'],
+            email: data['email'],
+            name: data['name'],
+            phone: data['phone'],
+            role: UserRole.DRIVER,
+            status: _parseUserStatus(data['verificationStatus']),
+          );
           _isLoading = false;
           notifyListeners();
           return true;
         }
       } catch (e) {
+        debugPrint('checkAuthStatus error: $e');
         // 토큰 만료 등
       }
     }
@@ -160,6 +171,19 @@ class AuthProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
     return false;
+  }
+
+  UserStatus _parseUserStatus(String? verificationStatus) {
+    switch (verificationStatus) {
+      case 'VERIFIED':
+        return UserStatus.APPROVED;
+      case 'REJECTED':
+        return UserStatus.REJECTED;
+      case 'PENDING':
+      case 'VERIFYING':
+      default:
+        return UserStatus.PENDING;
+    }
   }
 
   void clearError() {
