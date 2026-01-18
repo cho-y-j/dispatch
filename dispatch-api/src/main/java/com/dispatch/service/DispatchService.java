@@ -75,6 +75,16 @@ public class DispatchService {
     }
 
     @Transactional(readOnly = true)
+    public List<DispatchResponse> getAllDispatches() {
+        return dispatchRequestRepository.findAll().stream()
+                .map(request -> {
+                    DispatchMatch match = dispatchMatchRepository.findByRequest(request).orElse(null);
+                    return DispatchResponse.from(request, match);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<DispatchResponse> getMyDispatches(Long staffId) {
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> CustomException.notFound("사용자를 찾을 수 없습니다"));

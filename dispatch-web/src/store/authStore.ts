@@ -89,7 +89,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.getProfile();
           if (response.success && response.data) {
             set({
-              user: response.data.user,
+              user: response.data,
               isAuthenticated: true,
               isLoading: false,
             });

@@ -17,7 +17,7 @@ export const register = async (data: {
   return response.data;
 };
 
-export const getProfile = async (): Promise<ApiResponse<{ user: User }>> => {
-  const response = await client.get('/drivers/profile');
+export const getProfile = async (): Promise<ApiResponse<User>> => {
+  const response = await client.get('/auth/me');
   return response.data;
 };

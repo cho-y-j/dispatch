@@ -114,4 +114,19 @@ public class AuthService {
 
         return AuthResponse.of(newAccessToken, newRefreshToken, user);
     }
+
+    @Transactional(readOnly = true)
+    public AuthResponse.UserInfo getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> CustomException.notFound("사용자를 찾을 수 없습니다"));
+
+        return AuthResponse.UserInfo.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .build();
+    }
 }

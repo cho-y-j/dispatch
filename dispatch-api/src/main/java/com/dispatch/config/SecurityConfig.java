@@ -44,7 +44,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/companies/register").permitAll()  // 발주처 회원가입
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // CORS preflight
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/refresh",
                                 "/api/health",
                                 "/api/reports/dispatches/*/view",  // 작업 확인서 공개 조회
                                 "/uploads/**",                      // 업로드 파일 접근

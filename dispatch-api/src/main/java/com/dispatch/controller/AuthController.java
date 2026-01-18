@@ -4,6 +4,7 @@ import com.dispatch.dto.ApiResponse;
 import com.dispatch.dto.auth.AuthResponse;
 import com.dispatch.dto.auth.LoginRequest;
 import com.dispatch.dto.auth.RegisterRequest;
+import com.dispatch.security.CustomUserDetails;
 import com.dispatch.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -48,5 +50,14 @@ public class AuthController {
 
         AuthResponse response = authService.refresh(refreshToken);
         return ResponseEntity.ok(ApiResponse.success("토큰이 갱신되었습니다", response));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "내 정보 조회", description = "현재 로그인한 사용자의 정보를 조회합니다")
+    public ResponseEntity<ApiResponse<AuthResponse.UserInfo>> getCurrentUser(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        AuthResponse.UserInfo userInfo = authService.getCurrentUser(userDetails.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(userInfo));
     }
 }

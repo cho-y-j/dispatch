@@ -27,6 +27,16 @@ public class DispatchController {
 
     private final DispatchService dispatchService;
 
+    // ========== 관리자용 API ==========
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "전체 배차 목록", description = "모든 배차 목록을 조회합니다 (관리자)")
+    public ResponseEntity<ApiResponse<List<DispatchResponse>>> getAllDispatches() {
+        List<DispatchResponse> dispatches = dispatchService.getAllDispatches();
+        return ResponseEntity.ok(ApiResponse.success(dispatches));
+    }
+
     // ========== 직원용 API ==========
 
     @PostMapping
