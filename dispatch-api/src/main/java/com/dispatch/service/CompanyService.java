@@ -36,15 +36,10 @@ public class CompanyService {
      * 발주처 직접 회원가입
      */
     @Transactional
-    public CompanyResponse register(CompanyRegisterRequest request) {
+    public CompanyResponse register(CompanyRegisterRequest request, Long currentUserId) {
         // 사업자번호 중복 체크
         if (companyRepository.existsByBusinessNumber(request.getBusinessNumber())) {
             throw CustomException.conflict("이미 등록된 사업자번호입니다");
-        }
-
-        // 이메일 중복 체크
-        if (userRepository.existsByEmail(request.getContactEmail())) {
-            throw CustomException.conflict("이미 사용 중인 이메일입니다");
         }
 
         // 사업자등록번호 검증
@@ -80,19 +75,35 @@ public class CompanyService {
 
         companyRepository.save(company);
 
-        // 담당자 사용자 계정 생성
-        User user = User.builder()
-                .email(request.getContactEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .name(request.getContactName())
-                .phone(request.getContactPhone())
-                .role(User.UserRole.COMPANY)
-                .status(User.UserStatus.PENDING)
-                .company(company)
-                .build();
+        // 현재 로그인한 사용자가 있으면 회사에 연결
+        if (currentUserId != null) {
+            User currentUser = userRepository.findById(currentUserId)
+                    .orElse(null);
+            if (currentUser != null && currentUser.getCompany() == null) {
+                currentUser.setCompany(company);
+                company.getEmployees().add(currentUser);
+                log.info("Current user linked to company: userId={}, companyId={}", currentUserId, company.getId());
+            }
+        }
 
-        userRepository.save(user);
-        company.getEmployees().add(user);
+        // contactEmail이 현재 사용자와 다른 경우에만 새 사용자 계정 생성
+        User currentUser = currentUserId != null ? userRepository.findById(currentUserId).orElse(null) : null;
+        boolean needNewUser = currentUser == null || !currentUser.getEmail().equals(request.getContactEmail());
+
+        if (needNewUser && !userRepository.existsByEmail(request.getContactEmail())) {
+            User newUser = User.builder()
+                    .email(request.getContactEmail())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .name(request.getContactName())
+                    .phone(request.getContactPhone())
+                    .role(User.UserRole.COMPANY)
+                    .status(User.UserStatus.PENDING)
+                    .company(company)
+                    .build();
+
+            userRepository.save(newUser);
+            company.getEmployees().add(newUser);
+        }
 
         log.info("Company registered: companyId={}, name={}", company.getId(), company.getName());
 

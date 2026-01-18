@@ -29,9 +29,11 @@ public class CompanyController {
     @PostMapping("/register")
     @Operation(summary = "발주처 회원가입", description = "발주처(업체)가 직접 회원가입합니다")
     public ResponseEntity<ApiResponse<CompanyResponse>> register(
-            @Valid @RequestBody CompanyRegisterRequest request) {
+            @Valid @RequestBody CompanyRegisterRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        CompanyResponse response = companyService.register(request);
+        Long userId = userDetails != null ? userDetails.getUserId() : null;
+        CompanyResponse response = companyService.register(request, userId);
         return ResponseEntity.ok(ApiResponse.success("회원가입이 완료되었습니다. 관리자 승인 후 이용 가능합니다.", response));
     }
 

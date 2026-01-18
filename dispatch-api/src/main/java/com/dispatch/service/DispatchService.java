@@ -37,8 +37,15 @@ public class DispatchService {
         User staff = userRepository.findById(staffId)
                 .orElseThrow(() -> CustomException.notFound("사용자를 찾을 수 없습니다"));
 
+        // 사용자의 소속 회사 조회
+        Company company = staff.getCompany();
+        if (company == null) {
+            company = companyRepository.findByEmployeesUserId(staffId).orElse(null);
+        }
+
         DispatchRequest dispatch = DispatchRequest.builder()
                 .staff(staff)
+                .company(company)
                 .siteAddress(request.getSiteAddress())
                 .siteDetail(request.getSiteDetail())
                 .latitude(request.getLatitude())
