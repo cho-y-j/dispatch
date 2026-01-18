@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../models/chat_message.dart';
+import '../chat_screen.dart';
 
 class CompanyDispatchDetailScreen extends StatefulWidget {
   final int dispatchId;
@@ -117,9 +119,28 @@ class _CompanyDispatchDetailScreenState extends State<CompanyDispatchDetailScree
 
   @override
   Widget build(BuildContext context) {
+    final hasMatch = _dispatch != null && _dispatch!['driverName'] != null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('배차 #${widget.dispatchId}'),
+        actions: [
+          if (hasMatch)
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline),
+              tooltip: '채팅',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      dispatchId: widget.dispatchId,
+                      currentUserType: SenderType.COMPANY,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: _buildBody(),
     );

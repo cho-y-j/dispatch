@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/user.dart';
 import 'driver_registration_screen.dart';
+import 'statistics_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -85,6 +86,19 @@ class ProfileScreen extends StatelessWidget {
           Card(
             child: Column(
               children: [
+                ListTile(
+                  leading: const Icon(Icons.bar_chart),
+                  title: const Text('내 통계'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const StatisticsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.description),
                   title: const Text('기사 등록 / 서류 관리'),

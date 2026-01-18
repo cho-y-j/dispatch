@@ -4,8 +4,10 @@ import com.dispatch.dto.ApiResponse;
 import com.dispatch.dto.driver.DriverRegisterRequest;
 import com.dispatch.dto.driver.DriverResponse;
 import com.dispatch.dto.driver.LocationUpdateRequest;
+import com.dispatch.dto.statistics.DriverStatistics;
 import com.dispatch.security.CustomUserDetails;
 import com.dispatch.service.DriverService;
+import com.dispatch.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DriverController {
 
     private final DriverService driverService;
+    private final StatisticsService statisticsService;
 
     @PostMapping("/register")
     @PreAuthorize("hasRole('DRIVER')")
@@ -92,5 +95,15 @@ public class DriverController {
         DriverResponse response = driverService.setActive(userDetails.getUserId(), active);
         String message = active ? "활동 상태로 변경되었습니다" : "비활동 상태로 변경되었습니다";
         return ResponseEntity.ok(ApiResponse.success(message, response));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasRole('DRIVER')")
+    @Operation(summary = "내 통계", description = "기사 본인의 통계를 조회합니다")
+    public ResponseEntity<ApiResponse<DriverStatistics>> getMyStatistics(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        DriverStatistics statistics = statisticsService.getMyDriverStatistics(userDetails.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(statistics));
     }
 }

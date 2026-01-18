@@ -147,18 +147,90 @@ class AppConfig {
 
 ---
 
+## Phase 5: 채팅 + 통계 - 완료 ✅
+
+### 1. 웹 채팅 기능 구현 (2026-01-18)
+
+#### API 클라이언트 (`dispatch-web/src/api/chat.ts`) - 신규
+```typescript
+- getMessages(dispatchId): 채팅 메시지 조회
+- sendMessage(dispatchId, message, imageUrl?): 메시지 전송
+- markAsRead(dispatchId): 읽음 처리
+- getUnreadCount(dispatchId): 읽지 않은 메시지 수
+```
+
+#### 채팅 UI (`dispatch-web/src/components/ChatPanel.tsx`) - 신규
+- 메시지 목록 (내 메시지/상대 메시지 구분)
+- 5초 간격 폴링으로 새 메시지 확인
+- 메시지 전송 입력창
+- 읽음 처리 자동화
+- 스크롤 자동 이동
+
+#### 배차 페이지 통합 (`dispatch-web/src/pages/DispatchesPage.tsx`)
+- 매칭된 배차에 "채팅" 버튼 추가
+- 채팅 모달로 ChatPanel 표시
+
+### 2. 앱 채팅 기능 구현
+
+#### 채팅 모델 (`dispatch-app/lib/models/chat_message.dart`) - 신규
+- ChatMessage 클래스
+- SenderType enum (DRIVER, COMPANY)
+
+#### 채팅 화면 (`dispatch-app/lib/screens/chat_screen.dart`) - 신규
+- 메시지 목록 (말풍선 UI)
+- 5초 간격 폴링
+- 메시지 전송
+- 자동 스크롤
+
+#### API 서비스 업데이트 (`dispatch-app/lib/services/api_service.dart`)
+- getChatMessages(dispatchId)
+- sendChatMessage(dispatchId, message, imageUrl?)
+- markChatAsRead(dispatchId)
+- getUnreadChatCount(dispatchId)
+
+#### 화면 연동
+- 기사 배차 상세 (`dispatch_detail_screen.dart`): AppBar에 채팅 버튼 추가
+- 발주처 배차 상세 (`company_dispatch_detail_screen.dart`): AppBar에 채팅 버튼 추가
+
+### 3. 앱 통계 기능 구현
+
+#### 통계 화면 (`dispatch-app/lib/screens/statistics_screen.dart`) - 신규
+- 등급 카드 (1등급/2등급/3등급 + 평균 별점)
+- 배차 통계 카드 (총 배차/완료/취소 + 완료율)
+- 수익 카드 (총 수익)
+- 최근 배차 목록
+
+#### API 서비스 업데이트
+- getDriverStatistics(): 기사 통계 조회
+
+#### 프로필 화면 연동 (`profile_screen.dart`)
+- "내 통계" 메뉴 추가
+
+### 4. 백엔드 통계 API 추가
+
+#### StatisticsService.java
+- getMyDriverStatistics(userId): 기사 본인 통계 조회 메서드 추가
+
+#### DriverController.java
+- GET /api/drivers/statistics: 기사 본인 통계 엔드포인트 추가
+
+### 채팅 API 테스트 결과 ✅
+| 테스트 | 결과 |
+|--------|------|
+| 기사 → 메시지 전송 | ✅ 성공 (Message ID: 1) |
+| 발주처 → 메시지 전송 | ✅ 성공 (Message ID: 2) |
+| 메시지 조회 | ✅ 성공 (2개 메시지) |
+| 발신자 구분 | ✅ DRIVER/COMPANY 정상 구분 |
+
+---
+
 ## 다음 할 일 (우선순위 순)
 
 ### 즉시 확인 필요
 - [ ] 에뮬레이터에서 카카오맵 표시 확인
 - [ ] 마커 클릭 → 하단 시트 → 길안내 버튼 동작 확인
 - [ ] 카카오내비/카카오맵 웹 연동 테스트
-
-### Phase 5: 채팅 + 통계
-- [ ] 백엔드: 채팅 메시지 엔티티 + WebSocket
-- [ ] 앱/웹: 인앱 채팅 UI
-- [ ] 관리자: 상세 통계 대시보드
-- [ ] 리포트 다운로드
+- [ ] 채팅 실시간 테스트 (앱 ↔ 웹)
 
 ### 기타
 - [ ] Firebase 설정 (FCM 푸시 알림)

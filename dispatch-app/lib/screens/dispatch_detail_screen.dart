@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/dispatch_provider.dart';
 import '../models/dispatch.dart';
+import '../models/chat_message.dart';
 import 'signature_screen.dart';
+import 'chat_screen.dart';
 
 class DispatchDetailScreen extends StatelessWidget {
   final Dispatch dispatch;
@@ -16,6 +18,23 @@ class DispatchDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('배차 상세'),
+        actions: [
+          if (dispatch.match != null)
+            IconButton(
+              icon: const Icon(Icons.chat_bubble_outline),
+              tooltip: '채팅',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      dispatchId: dispatch.id,
+                      currentUserType: SenderType.DRIVER,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: Consumer<DispatchProvider>(
         builder: (context, provider, child) {

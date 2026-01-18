@@ -138,6 +138,16 @@ public class StatisticsService {
     }
 
     /**
+     * 기사 본인 통계 (userId로 조회)
+     */
+    @Transactional(readOnly = true)
+    public DriverStatistics getMyDriverStatistics(Long userId) {
+        Driver driver = driverRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("기사 정보를 찾을 수 없습니다"));
+        return buildDriverStatistics(driver);
+    }
+
+    /**
      * 발주처별 통계
      */
     @Transactional(readOnly = true)

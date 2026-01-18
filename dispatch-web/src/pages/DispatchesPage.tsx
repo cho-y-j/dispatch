@@ -10,11 +10,13 @@ import {
   DispatchStatusLabels,
   EquipmentType,
   EquipmentTypeLabels,
+  SenderType,
 } from '../types';
-import { Plus, X, MapPin, Clock, Loader2, Search, Star, AlertCircle } from 'lucide-react';
+import { Plus, X, MapPin, Clock, Loader2, Search, Star, AlertCircle, MessageCircle } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useKakaoAddress, AddressResult } from '../hooks/useKakaoAddress';
 import { useEffect } from 'react';
+import ChatPanel from '../components/ChatPanel';
 
 export default function DispatchesPage() {
   const { user } = useAuthStore();
@@ -22,7 +24,9 @@ export default function DispatchesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [selectedDispatch, setSelectedDispatch] = useState<Dispatch | null>(null);
+  const [chatDispatch, setChatDispatch] = useState<Dispatch | null>(null);
   const [filter, setFilter] = useState<DispatchStatus | 'ALL'>('ALL');
 
   const isAdmin = user?.role === UserRole.ADMIN;
@@ -65,6 +69,11 @@ export default function DispatchesPage() {
   const handleRateDriver = (dispatch: Dispatch) => {
     setSelectedDispatch(dispatch);
     setShowRatingModal(true);
+  };
+
+  const handleOpenChat = (dispatch: Dispatch) => {
+    setChatDispatch(dispatch);
+    setShowChatModal(true);
   };
 
   const handleSubmitRating = async (rating: number, comment?: string) => {
@@ -132,6 +141,7 @@ export default function DispatchesPage() {
               key={dispatch.id}
               dispatch={dispatch}
               onRate={() => handleRateDriver(dispatch)}
+              onChat={() => handleOpenChat(dispatch)}
             />
           ))}
         </div>
@@ -155,6 +165,22 @@ export default function DispatchesPage() {
           }}
           onSubmit={handleSubmitRating}
         />
+      )}
+
+      {/* Chat Modal */}
+      {showChatModal && chatDispatch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-lg h-[600px]">
+            <ChatPanel
+              dispatchId={chatDispatch.id}
+              currentUserType={isAdmin ? SenderType.COMPANY : SenderType.COMPANY}
+              onClose={() => {
+                setShowChatModal(false);
+                setChatDispatch(null);
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -187,14 +213,17 @@ function FilterButton({
 
 function DispatchCard({
   dispatch,
-  onRate
+  onRate,
+  onChat
 }: {
   dispatch: Dispatch;
   onRate: () => void;
+  onChat: () => void;
 }) {
   const canRate = dispatch.status === DispatchStatus.COMPLETED &&
                   dispatch.match &&
                   !dispatch.rating;
+  const canChat = dispatch.match !== null && dispatch.match !== undefined;
 
   return (
     <div className="bg-white rounded-lg shadow p-4">
@@ -255,15 +284,26 @@ function DispatchCard({
           )}
         </div>
 
-        {canRate && (
-          <button
-            onClick={onRate}
-            className="ml-4 px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors flex items-center gap-1"
-          >
-            <Star size={16} />
-            평가하기
-          </button>
-        )}
+        <div className="flex flex-col gap-2 ml-4">
+          {canChat && (
+            <button
+              onClick={onChat}
+              className="px-3 py-2 bg-blue-100 text-blue-800 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors flex items-center gap-1"
+            >
+              <MessageCircle size={16} />
+              채팅
+            </button>
+          )}
+          {canRate && (
+            <button
+              onClick={onRate}
+              className="px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors flex items-center gap-1"
+            >
+              <Star size={16} />
+              평가하기
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

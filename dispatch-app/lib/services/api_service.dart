@@ -281,6 +281,31 @@ class ApiService {
     });
   }
 
+  // 채팅
+  Future<Response> getChatMessages(int dispatchId) {
+    return _dio.get('/dispatches/$dispatchId/chat/messages');
+  }
+
+  Future<Response> sendChatMessage(int dispatchId, String message, {String? imageUrl}) {
+    return _dio.post('/dispatches/$dispatchId/chat/messages', data: {
+      'message': message,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+    });
+  }
+
+  Future<Response> markChatAsRead(int dispatchId) {
+    return _dio.put('/dispatches/$dispatchId/chat/messages/read');
+  }
+
+  Future<Response> getUnreadChatCount(int dispatchId) {
+    return _dio.get('/dispatches/$dispatchId/chat/unread-count');
+  }
+
+  // 통계
+  Future<Response> getDriverStatistics() {
+    return _dio.get('/drivers/statistics');
+  }
+
   // 디바이스 토큰 (FCM)
   Future<Response> registerDeviceToken(String token, String deviceType) {
     return _dio.post('/devices/token', data: {
