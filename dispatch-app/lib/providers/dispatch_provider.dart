@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/dispatch.dart';
 import '../services/api_service.dart';
@@ -25,19 +26,24 @@ class DispatchProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('[DispatchProvider] loadAvailableDispatches 호출');
       final response = await _apiService.getAvailableDispatches(
         latitude: latitude,
         longitude: longitude,
       );
+      debugPrint('[DispatchProvider] 응답: ${response.data}');
 
       if (response.data['success']) {
         final List<dynamic> data = response.data['data'];
         _availableDispatches = data.map((e) => Dispatch.fromJson(e)).toList();
+        debugPrint('[DispatchProvider] 로드된 배차: ${_availableDispatches.length}건');
       } else {
         _error = response.data['message'];
+        debugPrint('[DispatchProvider] 실패: $_error');
       }
     } catch (e) {
       _error = '배차 목록을 불러오는데 실패했습니다';
+      debugPrint('[DispatchProvider] 에러: $e');
     }
 
     _isLoading = false;
@@ -49,14 +55,18 @@ class DispatchProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('[DispatchProvider] loadMyDispatches 호출');
       final response = await _apiService.getDriverDispatches();
+      debugPrint('[DispatchProvider] 내 배차 응답: ${response.data}');
 
       if (response.data['success']) {
         final List<dynamic> data = response.data['data'];
         _myDispatches = data.map((e) => Dispatch.fromJson(e)).toList();
+        debugPrint('[DispatchProvider] 로드된 내 배차: ${_myDispatches.length}건');
       }
     } catch (e) {
       _error = '배차 이력을 불러오는데 실패했습니다';
+      debugPrint('[DispatchProvider] 내 배차 에러: $e');
     }
 
     _isLoading = false;

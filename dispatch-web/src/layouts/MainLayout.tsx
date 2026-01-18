@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -36,6 +37,7 @@ export default function MainLayout() {
   const menuItems = [
     { path: '/dashboard', label: '대시보드', icon: LayoutDashboard },
     { path: '/dispatches', label: '배차 관리', icon: FileText },
+    { path: '/work-reports', label: '작업 확인서', icon: ClipboardCheck },
     ...(isAdmin ? [
       { path: '/drivers', label: '기사 관리', icon: Users },
       { path: '/companies', label: '발주처 관리', icon: Building2 },

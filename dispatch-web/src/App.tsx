@@ -15,6 +15,7 @@ import CompaniesPage from './pages/CompaniesPage';
 import WarningsPage from './pages/WarningsPage';
 import StatisticsPage from './pages/StatisticsPage';
 import SettingsPage from './pages/SettingsPage';
+import WorkReportsPage from './pages/WorkReportsPage';
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
@@ -109,6 +110,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="dispatches" element={<DispatchesPage />} />
+          <Route path="work-reports" element={<WorkReportsPage />} />
           <Route
             path="drivers"
             element={

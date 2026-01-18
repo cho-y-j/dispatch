@@ -252,15 +252,18 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _openKakaoNavi(Dispatch dispatch) async {
-    final kakaoNaviUrl = Uri.parse(
-      'kakaonavi-sdk://route?ep=${dispatch.latitude},${dispatch.longitude}&by=CAR',
-    );
+    final hasCoords = dispatch.latitude != null && dispatch.longitude != null;
+
+    final kakaoNaviUrl = hasCoords
+        ? Uri.parse('kakaonavi-sdk://route?ep=${dispatch.latitude},${dispatch.longitude}&by=CAR')
+        : null;
+
     final kakaoMapUrl = Uri.parse(
-      'https://map.kakao.com/link/to/${Uri.encodeComponent(dispatch.siteAddress)},${dispatch.latitude},${dispatch.longitude}',
+      'https://map.kakao.com/link/search/${Uri.encodeComponent(dispatch.siteAddress)}',
     );
 
     try {
-      if (await canLaunchUrl(kakaoNaviUrl)) {
+      if (kakaoNaviUrl != null && await canLaunchUrl(kakaoNaviUrl)) {
         await launchUrl(kakaoNaviUrl);
       } else if (await canLaunchUrl(kakaoMapUrl)) {
         await launchUrl(kakaoMapUrl, mode: LaunchMode.externalApplication);
@@ -439,13 +442,13 @@ class _DispatchInfoSheet extends StatelessWidget {
   });
 
   String _calculateDistance() {
-    if (currentPosition == null) return '';
+    if (currentPosition == null || dispatch.latitude == null || dispatch.longitude == null) return '';
 
     double distance = Geolocator.distanceBetween(
       currentPosition!.latitude,
       currentPosition!.longitude,
-      dispatch.latitude,
-      dispatch.longitude,
+      dispatch.latitude!,
+      dispatch.longitude!,
     );
 
     if (distance < 1000) {

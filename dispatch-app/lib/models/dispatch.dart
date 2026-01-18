@@ -3,8 +3,8 @@ class Dispatch {
   final StaffInfo staff;
   final String siteAddress;
   final String? siteDetail;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
   final String? contactName;
   final String? contactPhone;
   final DateTime workDate;
@@ -26,8 +26,8 @@ class Dispatch {
     required this.staff,
     required this.siteAddress,
     this.siteDetail,
-    required this.latitude,
-    required this.longitude,
+    this.latitude,
+    this.longitude,
     this.contactName,
     this.contactPhone,
     required this.workDate,
@@ -51,8 +51,8 @@ class Dispatch {
       staff: StaffInfo.fromJson(json['staff']),
       siteAddress: json['siteAddress'],
       siteDetail: json['siteDetail'],
-      latitude: json['latitude'].toDouble(),
-      longitude: json['longitude'].toDouble(),
+      latitude: json['latitude']?.toDouble(),
+      longitude: json['longitude']?.toDouble(),
       contactName: json['contactName'],
       contactPhone: json['contactPhone'],
       workDate: DateTime.parse(json['workDate']),

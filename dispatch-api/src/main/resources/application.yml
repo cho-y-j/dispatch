@@ -56,6 +56,34 @@ server:
   port: 8082
 
 ---
+# Docker 환경
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+  datasource:
+    url: jdbc:postgresql://postgres:5432/dispatch
+    username: dispatch
+    password: dispatch123
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  data:
+    redis:
+      host: redis
+      port: 6379
+
+server:
+  port: 8080
+
+---
 # 운영 환경
 spring:
   config:
@@ -71,9 +99,10 @@ spring:
     hibernate:
       ddl-auto: validate
 
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
   port: 8080

@@ -3,6 +3,7 @@ package com.dispatch.service;
 import com.dispatch.dto.dispatch.DispatchCreateRequest;
 import com.dispatch.dto.dispatch.DispatchResponse;
 import com.dispatch.dto.dispatch.SignatureRequest;
+import com.dispatch.dto.dispatch.WorkReportResponse;
 import com.dispatch.entity.*;
 import com.dispatch.exception.CustomException;
 import com.dispatch.repository.*;
@@ -25,6 +26,7 @@ public class DispatchService {
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
     private final EquipmentRepository equipmentRepository;
+    private final CompanyRepository companyRepository;
     private final NotificationService notificationService;
     private final PdfGenerationService pdfGenerationService;
 
@@ -227,6 +229,7 @@ public class DispatchService {
         }
 
         match.setDriverSignature(request.getSignature());
+        match.setDriverSignedAt(LocalDateTime.now());
         if (request.getFinalPrice() != null) {
             match.setFinalPrice(request.getFinalPrice());
         }
@@ -252,6 +255,7 @@ public class DispatchService {
 
         match.setClientSignature(request.getSignature());
         match.setClientName(request.getClientName());
+        match.setClientSignedAt(LocalDateTime.now());
         match.setStatus(DispatchMatch.MatchStatus.SIGNED);
         match.getRequest().setStatus(DispatchRequest.DispatchStatus.COMPLETED);
 
@@ -271,6 +275,86 @@ public class DispatchService {
         }
 
         return DispatchResponse.from(match.getRequest(), match);
+    }
+
+    /**
+     * 발주처 확인/서명
+     */
+    @Transactional
+    public DispatchResponse signByCompany(Long userId, Long dispatchId, SignatureRequest request) {
+        DispatchRequest dispatch = dispatchRequestRepository.findById(dispatchId)
+                .orElseThrow(() -> CustomException.notFound("배차를 찾을 수 없습니다"));
+
+        // 권한 확인 - 해당 발주처 소속 직원인지
+        if (!dispatch.getStaff().getId().equals(userId) &&
+            !dispatch.getCompany().getEmployees().stream()
+                .anyMatch(e -> e.getId().equals(userId))) {
+            throw CustomException.forbidden("이 배차를 확인할 권한이 없습니다");
+        }
+
+        DispatchMatch match = dispatchMatchRepository.findByRequest(dispatch)
+                .orElseThrow(() -> CustomException.notFound("매칭 정보를 찾을 수 없습니다"));
+
+        if (match.getStatus() != DispatchMatch.MatchStatus.SIGNED) {
+            throw CustomException.badRequest("현장 서명이 먼저 완료되어야 합니다");
+        }
+
+        // 발주처 서명/확인 처리
+        if (request.getSignature() != null && !request.getSignature().isEmpty()) {
+            match.setCompanySignature(request.getSignature());
+        }
+        match.setCompanySignedBy(request.getClientName()); // 서명자 이름
+        match.setCompanySignedAt(LocalDateTime.now());
+        match.setCompanyConfirmed(true);
+
+        log.info("Company confirmed dispatch: dispatchId={}, confirmedBy={}", dispatchId, request.getClientName());
+
+        return DispatchResponse.from(match.getRequest(), match);
+    }
+
+    /**
+     * 작업 확인서 조회
+     */
+    @Transactional(readOnly = true)
+    public WorkReportResponse getWorkReport(Long dispatchId) {
+        DispatchRequest dispatch = dispatchRequestRepository.findById(dispatchId)
+                .orElseThrow(() -> CustomException.notFound("배차를 찾을 수 없습니다"));
+
+        DispatchMatch match = dispatchMatchRepository.findByRequest(dispatch)
+                .orElseThrow(() -> CustomException.notFound("매칭 정보를 찾을 수 없습니다"));
+
+        return WorkReportResponse.from(dispatch, match);
+    }
+
+    /**
+     * 완료된 배차 목록 (작업 확인서 목록)
+     */
+    @Transactional(readOnly = true)
+    public List<WorkReportResponse> getCompletedDispatches() {
+        return dispatchMatchRepository.findByStatusIn(
+                List.of(DispatchMatch.MatchStatus.SIGNED)
+        ).stream()
+                .map(match -> WorkReportResponse.from(match.getRequest(), match))
+                .toList();
+    }
+
+    /**
+     * 발주처 완료 배차 목록
+     */
+    @Transactional(readOnly = true)
+    public List<WorkReportResponse> getCompanyCompletedDispatches(Long userId) {
+        // 사용자의 소속 회사 찾기
+        Company company = companyRepository.findByEmployeesUserId(userId)
+                .orElseThrow(() -> CustomException.notFound("소속 회사를 찾을 수 없습니다"));
+
+        return dispatchRequestRepository.findByCompanyId(company.getId()).stream()
+                .filter(d -> d.getStatus() == DispatchRequest.DispatchStatus.COMPLETED)
+                .map(d -> {
+                    DispatchMatch match = dispatchMatchRepository.findByRequest(d).orElse(null);
+                    return WorkReportResponse.from(d, match);
+                })
+                .filter(r -> r != null)
+                .toList();
     }
 
     @Transactional(readOnly = true)

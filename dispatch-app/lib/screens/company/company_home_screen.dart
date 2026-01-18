@@ -6,6 +6,7 @@ import '../role_selection_screen.dart';
 import 'company_dispatch_list_screen.dart';
 import 'company_create_dispatch_screen.dart';
 import 'company_profile_screen.dart';
+import 'company_work_reports_screen.dart';
 
 class CompanyHomeScreen extends StatefulWidget {
   const CompanyHomeScreen({super.key});
@@ -20,6 +21,7 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
   final List<Widget> _screens = [
     const CompanyDispatchListScreen(),
     const CompanyCreateDispatchScreen(),
+    const CompanyWorkReportsScreen(),
     const CompanyProfileScreen(),
   ];
 
@@ -85,6 +87,10 @@ class _CompanyHomeScreenState extends State<CompanyHomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
             label: '배차 등록',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_turned_in),
+            label: '작업 확인서',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),

@@ -4,6 +4,7 @@ import com.dispatch.dto.ApiResponse;
 import com.dispatch.dto.dispatch.DispatchCreateRequest;
 import com.dispatch.dto.dispatch.DispatchResponse;
 import com.dispatch.dto.dispatch.SignatureRequest;
+import com.dispatch.dto.dispatch.WorkReportResponse;
 import com.dispatch.security.CustomUserDetails;
 import com.dispatch.service.DispatchService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -172,5 +173,38 @@ public class DispatchController {
 
         DispatchResponse response = dispatchService.cancelDispatch(userDetails.getUserId(), id);
         return ResponseEntity.ok(ApiResponse.success("배차가 취소되었습니다", response));
+    }
+
+    // ========== 발주처 서명/확인 API ==========
+
+    @PostMapping("/{id}/sign/company")
+    @PreAuthorize("hasAnyRole('COMPANY', 'STAFF')")
+    @Operation(summary = "발주처 확인/서명", description = "작업 확인서에 발주처가 서명하여 확인합니다")
+    public ResponseEntity<ApiResponse<DispatchResponse>> signByCompany(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @Valid @RequestBody SignatureRequest request) {
+
+        DispatchResponse response = dispatchService.signByCompany(userDetails.getUserId(), id, request);
+        return ResponseEntity.ok(ApiResponse.success("발주처 확인이 완료되었습니다", response));
+    }
+
+    // ========== 작업 확인서 API ==========
+
+    @GetMapping("/{id}/work-report")
+    @Operation(summary = "작업 확인서 조회", description = "작업 확인서 상세 정보를 조회합니다")
+    public ResponseEntity<ApiResponse<WorkReportResponse>> getWorkReport(@PathVariable Long id) {
+        WorkReportResponse response = dispatchService.getWorkReport(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/company/work-reports")
+    @PreAuthorize("hasAnyRole('COMPANY', 'STAFF')")
+    @Operation(summary = "발주처 작업 확인서 목록", description = "발주처의 완료된 작업 확인서 목록을 조회합니다")
+    public ResponseEntity<ApiResponse<List<WorkReportResponse>>> getCompanyWorkReports(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        List<WorkReportResponse> reports = dispatchService.getCompanyCompletedDispatches(userDetails.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(reports));
     }
 }

@@ -185,20 +185,25 @@ class DispatchDetailScreen extends StatelessWidget {
   }
 
   Future<void> _openKakaoNavi(BuildContext context, Dispatch dispatch) async {
-    // 카카오내비 딥링크
-    final kakaoNaviUrl = Uri.parse(
-      'kakaonavi-sdk://route?ep=${dispatch.latitude},${dispatch.longitude}&by=CAR',
-    );
+    final hasCoords = dispatch.latitude != null && dispatch.longitude != null;
 
-    // 카카오맵 웹 URL (카카오내비가 없을 경우 폴백)
+    // 카카오내비 딥링크 (좌표가 있는 경우)
+    final kakaoNaviUrl = hasCoords
+        ? Uri.parse('kakaonavi-sdk://route?ep=${dispatch.latitude},${dispatch.longitude}&by=CAR')
+        : null;
+
+    // 카카오맵 웹 URL (주소 기반 - 좌표 없어도 작동)
     final kakaoMapUrl = Uri.parse(
-      'https://map.kakao.com/link/to/${Uri.encodeComponent(dispatch.siteAddress)},${dispatch.latitude},${dispatch.longitude}',
+      'https://map.kakao.com/link/search/${Uri.encodeComponent(dispatch.siteAddress)}',
     );
 
     try {
-      if (await canLaunchUrl(kakaoNaviUrl)) {
+      // 좌표가 있고 카카오내비가 설치된 경우
+      if (kakaoNaviUrl != null && await canLaunchUrl(kakaoNaviUrl)) {
         await launchUrl(kakaoNaviUrl);
-      } else if (await canLaunchUrl(kakaoMapUrl)) {
+      }
+      // 카카오맵 웹으로 주소 검색
+      else if (await canLaunchUrl(kakaoMapUrl)) {
         await launchUrl(kakaoMapUrl, mode: LaunchMode.externalApplication);
       } else {
         if (context.mounted) {

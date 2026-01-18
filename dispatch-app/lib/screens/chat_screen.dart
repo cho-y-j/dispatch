@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/chat_message.dart';
@@ -57,17 +58,20 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
+      debugPrint('[ChatScreen] 메시지 조회 dispatchId: ${widget.dispatchId}');
       final response = await _apiService.getChatMessages(widget.dispatchId);
+      debugPrint('[ChatScreen] 메시지 응답: ${response.data}');
       if (response.data['success'] == true && response.data['data'] != null) {
         final List<dynamic> data = response.data['data'];
         setState(() {
           _messages = data.map((e) => ChatMessage.fromJson(e)).toList();
         });
+        debugPrint('[ChatScreen] 로드된 메시지: ${_messages.length}개');
         await _apiService.markChatAsRead(widget.dispatchId);
         _scrollToBottom();
       }
     } catch (e) {
-      debugPrint('Failed to fetch messages: $e');
+      debugPrint('[ChatScreen] 메시지 조회 실패: $e');
     } finally {
       if (showLoading) {
         setState(() => _loading = false);
@@ -91,6 +95,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final message = _messageController.text.trim();
     if (message.isEmpty || _sending) return;
 
+    debugPrint('[ChatScreen] 메시지 전송 시작: dispatchId=${widget.dispatchId}, message=$message');
     setState(() => _sending = true);
     _messageController.clear();
 
@@ -99,6 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
         widget.dispatchId,
         message,
       );
+      debugPrint('[ChatScreen] 전송 응답: ${response.data}');
       if (response.data['success'] == true && response.data['data'] != null) {
         final newMessage = ChatMessage.fromJson(response.data['data']);
         setState(() {
@@ -106,9 +112,12 @@ class _ChatScreenState extends State<ChatScreen> {
         });
         _scrollToBottom();
         _focusNode.requestFocus();
+        debugPrint('[ChatScreen] 메시지 전송 성공');
+      } else {
+        debugPrint('[ChatScreen] 메시지 전송 실패: ${response.data}');
       }
     } catch (e) {
-      debugPrint('Failed to send message: $e');
+      debugPrint('[ChatScreen] 메시지 전송 에러: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('메시지 전송에 실패했습니다.')),
       );

@@ -1,19 +1,27 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: dispatch-postgres
     environment:
       POSTGRES_DB: dispatch
       POSTGRES_USER: dispatch
       POSTGRES_PASSWORD: dispatch123
+      TZ: Asia/Seoul
     ports:
       - "5432:5432"
     volumes:
       - dispatch-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dispatch -d dispatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: dispatch-redis
@@ -21,8 +29,57 @@ services:
       - "6379:6379"
     volumes:
       - dispatch-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Spring Boot API
+  api:
+    build:
+      context: ./dispatch-api
+      dockerfile: Dockerfile
+    container_name: dispatch-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - TZ=Asia/Seoul
+    volumes:
+      - dispatch-uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # React Web Frontend
+  web:
+    build:
+      context: ./dispatch-web
+      dockerfile: Dockerfile
+    container_name: dispatch-web
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   dispatch-postgres-data:
   dispatch-redis-data:
+  dispatch-uploads:
+
+networks:
+  default:
+    name: dispatch-network

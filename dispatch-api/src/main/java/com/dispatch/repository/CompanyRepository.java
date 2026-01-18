@@ -28,4 +28,7 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
 
     @Query("SELECT c FROM Company c WHERE c.name LIKE %:keyword% OR c.businessNumber LIKE %:keyword%")
     List<Company> searchByKeyword(@Param("keyword") String keyword);
+
+    @Query("SELECT c FROM Company c JOIN c.employees e WHERE e.id = :userId")
+    Optional<Company> findByEmployeesUserId(@Param("userId") Long userId);
 }

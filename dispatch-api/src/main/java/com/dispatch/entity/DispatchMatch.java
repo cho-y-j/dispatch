@@ -53,19 +53,43 @@ public class DispatchMatch {
     @Column(name = "final_price", precision = 10, scale = 2)
     private BigDecimal finalPrice;
 
-    // 전자서명
+    // 전자서명 - 기사
     @Column(name = "driver_signature", columnDefinition = "TEXT")
     private String driverSignature;
 
+    @Column(name = "driver_signed_at")
+    private LocalDateTime driverSignedAt;
+
+    // 전자서명 - 현장 담당자 (고객)
     @Column(name = "client_signature", columnDefinition = "TEXT")
     private String clientSignature;
 
     @Column(name = "client_name")
     private String clientName;
 
+    @Column(name = "client_signed_at")
+    private LocalDateTime clientSignedAt;
+
+    // 전자서명 - 발주처 확인
+    @Column(name = "company_signature", columnDefinition = "TEXT")
+    private String companySignature;
+
+    @Column(name = "company_signed_by")
+    private String companySignedBy;
+
+    @Column(name = "company_signed_at")
+    private LocalDateTime companySignedAt;
+
+    @Column(name = "company_confirmed")
+    private Boolean companyConfirmed;
+
     // 작업 확인서
     @Column(name = "work_report_url")
     private String workReportUrl;
+
+    // 작업 사진
+    @Column(name = "work_photos", columnDefinition = "TEXT")
+    private String workPhotos; // JSON array of photo URLs
 
     // 작업 메모
     @Column(name = "work_notes", columnDefinition = "TEXT")

@@ -167,6 +167,16 @@ public class StatisticsService {
         return buildCompanyStatistics(company);
     }
 
+    /**
+     * 내 발주처 통계 (userId로 조회)
+     */
+    @Transactional(readOnly = true)
+    public CompanyStatistics getMyCompanyStatistics(Long userId) {
+        Company company = companyRepository.findByEmployeesUserId(userId)
+                .orElseThrow(() -> new RuntimeException("소속 회사를 찾을 수 없습니다"));
+        return buildCompanyStatistics(company);
+    }
+
     private DriverStatistics buildDriverStatistics(Driver driver) {
         List<DispatchMatch> matches = dispatchMatchRepository.findByDriverId(driver.getId());
 

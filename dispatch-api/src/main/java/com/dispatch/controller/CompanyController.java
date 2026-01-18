@@ -3,8 +3,10 @@ package com.dispatch.controller;
 import com.dispatch.dto.ApiResponse;
 import com.dispatch.dto.company.CompanyRegisterRequest;
 import com.dispatch.dto.company.CompanyResponse;
+import com.dispatch.dto.statistics.CompanyStatistics;
 import com.dispatch.security.CustomUserDetails;
 import com.dispatch.service.CompanyService;
+import com.dispatch.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -22,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class CompanyController {
 
     private final CompanyService companyService;
+    private final StatisticsService statisticsService;
 
     @PostMapping("/register")
     @Operation(summary = "발주처 회원가입", description = "발주처(업체)가 직접 회원가입합니다")
@@ -52,5 +55,15 @@ public class CompanyController {
         CompanyResponse myCompany = companyService.getMyCompany(userDetails.getUserId());
         CompanyResponse response = companyService.uploadBusinessLicense(myCompany.getId(), file);
         return ResponseEntity.ok(ApiResponse.success("사업자등록증이 업로드되었습니다", response));
+    }
+
+    @GetMapping("/statistics")
+    @PreAuthorize("hasAnyRole('COMPANY', 'STAFF')")
+    @Operation(summary = "내 발주처 통계", description = "로그인한 사용자 소속 발주처의 통계를 조회합니다")
+    public ResponseEntity<ApiResponse<CompanyStatistics>> getMyCompanyStatistics(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        CompanyStatistics stats = statisticsService.getMyCompanyStatistics(userDetails.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 }

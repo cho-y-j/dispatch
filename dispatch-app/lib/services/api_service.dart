@@ -306,6 +306,11 @@ class ApiService {
     return _dio.get('/drivers/statistics');
   }
 
+  // 발주처 통계
+  Future<Response> getCompanyStatistics() {
+    return _dio.get('/companies/statistics');
+  }
+
   // 디바이스 토큰 (FCM)
   Future<Response> registerDeviceToken(String token, String deviceType) {
     return _dio.post('/devices/token', data: {
@@ -316,6 +321,22 @@ class ApiService {
 
   Future<Response> deleteDeviceToken(String token) {
     return _dio.delete('/devices/token', queryParameters: {'token': token});
+  }
+
+  // 작업 확인서
+  Future<Response> getCompanyWorkReports() {
+    return _dio.get('/dispatches/company/work-reports');
+  }
+
+  Future<Response> getWorkReport(int dispatchId) {
+    return _dio.get('/dispatches/$dispatchId/work-report');
+  }
+
+  Future<Response> signByCompany(int dispatchId, String signerName, {String? signature}) {
+    return _dio.post('/dispatches/$dispatchId/sign/company', data: {
+      'clientName': signerName,
+      if (signature != null) 'signature': signature,
+    });
   }
 
   // 토큰 저장

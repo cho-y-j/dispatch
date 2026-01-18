@@ -406,3 +406,53 @@ export interface CreateDispatchRequest {
   contactName?: string;
   contactPhone?: string;
 }
+
+// 작업 확인서 타입
+export interface WorkReport {
+  dispatchId: number;
+  matchId: number;
+  // 배차 정보
+  siteAddress: string;
+  siteDetail?: string;
+  workDate: string;
+  workTime: string;
+  equipmentTypeName?: string;
+  workDescription?: string;
+  // 발주처 정보
+  companyId?: number;
+  companyName?: string;
+  staffName: string;
+  staffPhone: string;
+  // 기사 정보
+  driverId: number;
+  driverName: string;
+  driverPhone: string;
+  // 요금
+  originalPrice?: number;
+  finalPrice?: number;
+  // 작업 시간
+  matchedAt?: string;
+  departedAt?: string;
+  arrivedAt?: string;
+  workStartedAt?: string;
+  completedAt?: string;
+  // 서명 - 기사
+  driverSignature?: string;
+  driverSignedAt?: string;
+  // 서명 - 현장 담당자
+  clientSignature?: string;
+  clientName?: string;
+  clientSignedAt?: string;
+  // 서명 - 발주처 확인
+  companySignature?: string;
+  companySignedBy?: string;
+  companySignedAt?: string;
+  companyConfirmed?: boolean;
+  // 작업 메모 및 확인서
+  workNotes?: string;
+  workReportUrl?: string;
+  workPhotos?: string;
+  // 상태
+  status: string;
+  dispatchStatus: string;
+}

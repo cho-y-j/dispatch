@@ -5,6 +5,7 @@ import com.dispatch.dto.admin.*;
 import com.dispatch.dto.company.CompanyCreateRequest;
 import com.dispatch.dto.company.CompanyResponse;
 import com.dispatch.dto.company.CompanyUpdateRequest;
+import com.dispatch.dto.dispatch.WorkReportResponse;
 import com.dispatch.dto.driver.DriverResponse;
 import com.dispatch.dto.settings.SystemSettingRequest;
 import com.dispatch.dto.settings.SystemSettingResponse;
@@ -40,6 +41,7 @@ public class AdminController {
     private final SuspensionService suspensionService;
     private final StatisticsService statisticsService;
     private final SystemSettingService systemSettingService;
+    private final DispatchService dispatchService;
 
     // ==================== 기사 관리 ====================
 
@@ -307,5 +309,21 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Map<String, Integer>>> getGradeSettings() {
         Map<String, Integer> settings = systemSettingService.getGradeDelaySettings();
         return ResponseEntity.ok(ApiResponse.success(settings));
+    }
+
+    // ==================== 작업 확인서 관리 ====================
+
+    @GetMapping("/work-reports")
+    @Operation(summary = "작업 확인서 목록", description = "모든 완료된 작업의 확인서 목록을 조회합니다")
+    public ResponseEntity<ApiResponse<List<WorkReportResponse>>> getAllWorkReports() {
+        List<WorkReportResponse> reports = dispatchService.getCompletedDispatches();
+        return ResponseEntity.ok(ApiResponse.success(reports));
+    }
+
+    @GetMapping("/work-reports/{dispatchId}")
+    @Operation(summary = "작업 확인서 상세", description = "특정 작업 확인서의 상세 정보를 조회합니다")
+    public ResponseEntity<ApiResponse<WorkReportResponse>> getWorkReportDetail(@PathVariable Long dispatchId) {
+        WorkReportResponse report = dispatchService.getWorkReport(dispatchId);
+        return ResponseEntity.ok(ApiResponse.success(report));
     }
 }

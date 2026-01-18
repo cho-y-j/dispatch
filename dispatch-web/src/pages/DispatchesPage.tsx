@@ -272,7 +272,7 @@ function DispatchCard({
             <div className="mt-3 pt-3 border-t text-sm flex items-center justify-between">
               <div>
                 <span className="text-gray-500">배정 기사:</span>{' '}
-                <span className="font-medium">{dispatch.match.driver.user.name}</span>
+                <span className="font-medium">{(dispatch.match as any).driverName || dispatch.match.driver?.user?.name || '기사'}</span>
               </div>
               {dispatch.rating && (
                 <div className="flex items-center gap-1 text-yellow-500">
@@ -343,7 +343,7 @@ function RatingModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">
-              기사: <span className="font-medium text-gray-900">{dispatch.match?.driver.user.name}</span>
+              기사: <span className="font-medium text-gray-900">{(dispatch.match as any)?.driverName || dispatch.match?.driver?.user?.name || '기사'}</span>
             </p>
             <p className="text-sm text-gray-600">
               작업 장소: <span className="font-medium text-gray-900">{dispatch.siteAddress}</span>
