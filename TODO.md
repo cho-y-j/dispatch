@@ -1,5 +1,132 @@
 # 배차 시스템 개발 진행 상황
 
+## 2026-01-18 (토) 저녁 작업 내용
+
+### 작업 확인서 (Work Report) 기능 구현
+
+발주처가 작업 완료 후 확인/서명할 수 있는 기능 추가
+
+#### 1. Backend (Spring Boot)
+
+**DispatchMatch 엔티티 확장**
+- `driverSignedAt` - 기사 서명 시간
+- `clientSignedAt` - 현장 담당자 서명 시간
+- `companySignature` - 발주처 서명 이미지 (Base64)
+- `companySignedBy` - 발주처 확인자 이름
+- `companySignedAt` - 발주처 확인 시간
+- `companyConfirmed` - 발주처 확인 여부
+- `workPhotos` - 작업 사진 (JSON)
+
+**WorkReportResponse DTO** - 신규 생성
+- 배차/발주처/기사 정보
+- 요금 (기본/최종)
+- 작업 시간 기록 (수락~완료)
+- 전자서명 정보 (기사/현장/발주처)
+- 작업 메모 및 확인서 URL
+
+**API 엔드포인트**
+| 메서드 | URL | 설명 |
+|--------|-----|------|
+| POST | `/api/dispatches/{id}/sign/company` | 발주처 서명/확인 |
+| GET | `/api/dispatches/{id}/work-report` | 작업 확인서 조회 |
+| GET | `/api/dispatches/company/work-reports` | 발주처 확인서 목록 |
+| GET | `/api/admin/work-reports` | 관리자 전체 목록 |
+| GET | `/api/admin/work-reports/{id}` | 관리자 확인서 상세 |
+
+#### 2. Web (React)
+
+**WorkReportsPage.tsx** - 신규
+- 필터링 (전체/확인완료/대기중)
+- 검색 (주소, 기사명, 발주처)
+- 날짜 필터
+- 상세 보기 모달 (배차정보, 시간기록, 서명현황)
+- 발주처 서명/확인 모달 (캔버스 서명)
+
+**workReport.ts** (API 클라이언트) - 신규
+- `getWorkReport()`, `getCompanyWorkReports()`
+- `signByCompany()`, `getAllWorkReports()`
+
+**UI 연동**
+- 사이드바에 "작업 확인서" 메뉴 추가
+- `/work-reports` 라우트 추가
+
+#### 3. Flutter App
+
+**WorkReport 모델** (`lib/models/work_report.dart`) - 신규
+
+**CompanyWorkReportsScreen** (`lib/screens/company/company_work_reports_screen.dart`) - 신규
+- 필터 (전체/확인완료/대기중)
+- 작업 확인서 카드 리스트
+- 상세 보기 시트
+- 서명/확인 다이얼로그 (캔버스 서명)
+
+**company_home_screen.dart** 수정
+- 하단 네비게이션에 "작업 확인서" 탭 추가
+
+**api_service.dart** 수정
+- `getCompanyWorkReports()`
+- `getWorkReport()`
+- `signByCompany()`
+
+---
+
+### Docker 환경 구성 (협업자용)
+
+#### docker-compose.yml 업데이트
+```yaml
+services:
+  postgres:    # PostgreSQL 15 - 포트 5432
+  redis:       # Redis 7 - 포트 6379
+  api:         # Spring Boot - 포트 8080
+  web:         # React (Nginx) - 포트 80
+```
+
+#### Dockerfiles
+- `dispatch-api/Dockerfile` - 멀티스테이지 빌드 (Gradle → JRE Alpine)
+- `dispatch-web/Dockerfile` - 멀티스테이지 빌드 (Node → Nginx)
+- `dispatch-web/nginx.conf` - SPA 라우팅 + API 프록시
+
+#### 환경 설정
+- `application.yml` - Docker 프로필 추가 (`spring.profiles.active=docker`)
+- `.env.docker` - 웹 Docker 환경 변수
+
+#### 사용 방법
+```bash
+# 전체 서비스 실행
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f
+
+# 서비스 중지
+docker-compose down
+```
+
+#### 접속 URL (Docker)
+| 서비스 | URL |
+|--------|-----|
+| 웹 | http://localhost |
+| API | http://localhost:8080 |
+| Swagger | http://localhost:8080/swagger-ui.html |
+
+---
+
+### 버그 수정
+- `CompanyRepository.findByEmployeesUserId` 쿼리 수정
+  - `e.user.id` → `e.id` (employees가 User 타입)
+
+---
+
+### 작업 흐름 (완성)
+```
+1. 기사: 작업 완료 → 기사 서명
+2. 현장 담당자: 기사 휴대폰에서 현장 서명
+3. 발주처: 웹/앱에서 작업 확인서 열람 → 확인/서명
+4. 관리자: 웹에서 모든 작업 확인서 열람 가능
+```
+
+---
+
 ## 2026-01-18 (토) 오후 작업 내용
 
 ### 버그 수정 및 기능 개선
