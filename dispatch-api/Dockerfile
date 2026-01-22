@@ -6,12 +6,12 @@ COPY gradle ./gradle
 COPY src ./src
 RUN gradle build -x test --no-daemon
 
-# Runtime stage
-FROM eclipse-temurin:17-jre-alpine
+# Runtime stage (ARM64 지원)
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -S dispatch && adduser -S dispatch -G dispatch
+RUN groupadd -r dispatch && useradd -r -g dispatch dispatch
 
 # Create upload directory
 RUN mkdir -p /app/uploads && chown -R dispatch:dispatch /app

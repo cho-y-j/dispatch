@@ -58,6 +58,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/ws/**"
                         ).permitAll()
+                        // 인원 관리 (Admin + Company)
+                        .requestMatchers("/api/admin/verifications/**").hasAnyRole("ADMIN", "COMPANY")
                         // 관리자 전용
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // 직원/발주처 전용

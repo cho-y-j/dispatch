@@ -16,8 +16,17 @@ import WarningsPage from './pages/WarningsPage';
 import StatisticsPage from './pages/StatisticsPage';
 import SettingsPage from './pages/SettingsPage';
 import WorkReportsPage from './pages/WorkReportsPage';
+import PersonnelManagementPage from './pages/PersonnelManagementPage';
 
-function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
+function ProtectedRoute({
+  children,
+  adminOnly = false,
+  allowedRoles,
+}: {
+  children: React.ReactNode;
+  adminOnly?: boolean;
+  allowedRoles?: UserRole[];
+}) {
   const { isAuthenticated, user, isLoading } = useAuthStore();
 
   if (isLoading) {
@@ -32,6 +41,12 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
     return <Navigate to="/login" replace />;
   }
 
+  // allowedRoles가 지정된 경우 해당 역할만 허용
+  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // adminOnly는 기존 호환성을 위해 유지
   if (adminOnly && user?.role !== UserRole.ADMIN) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -116,6 +131,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <DriversPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="personnel"
+            element={
+              <ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.COMPANY]}>
+                <PersonnelManagementPage />
               </ProtectedRoute>
             }
           />

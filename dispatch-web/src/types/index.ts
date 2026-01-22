@@ -456,3 +456,95 @@ export interface WorkReport {
   status: string;
   dispatchStatus: string;
 }
+
+// ==================== 서류 검증 관련 타입 ====================
+
+export enum VerificationType {
+  LICENSE = 'LICENSE',
+  BUSINESS = 'BUSINESS',
+  KOSHA = 'KOSHA',
+  CARGO = 'CARGO',
+}
+
+export const VerificationTypeLabels: Record<VerificationType, string> = {
+  [VerificationType.LICENSE]: '운전면허',
+  [VerificationType.BUSINESS]: '사업자등록',
+  [VerificationType.KOSHA]: 'KOSHA 교육이수증',
+  [VerificationType.CARGO]: '화물운송 자격증',
+};
+
+export enum VerifyResult {
+  VALID = 'VALID',
+  INVALID = 'INVALID',
+  UNKNOWN = 'UNKNOWN',
+  NOT_VERIFIED = 'NOT_VERIFIED',
+}
+
+export const VerifyResultLabels: Record<VerifyResult, string> = {
+  [VerifyResult.VALID]: '유효',
+  [VerifyResult.INVALID]: '무효',
+  [VerifyResult.UNKNOWN]: '확인 불가',
+  [VerifyResult.NOT_VERIFIED]: '미검증',
+};
+
+export interface VerificationItemStatus {
+  result: string;
+  reasonCode?: string;
+  message?: string;
+  verifiedAt?: string;
+}
+
+export interface DriverVerificationSummary {
+  driverId: number;
+  driverName: string;
+  phone: string;
+  email: string;
+  businessRegistrationNumber?: string;
+  driverLicenseNumber?: string;
+  licenseStatus: VerificationItemStatus;
+  businessStatus: VerificationItemStatus;
+  koshaStatus: VerificationItemStatus;
+  cargoStatus: VerificationItemStatus;
+}
+
+export interface DriverVerificationHistory {
+  id: number;
+  driverId: number;
+  verificationType: string;
+  result: string;
+  reasonCode?: string;
+  message?: string;
+  verifiedBy?: number;
+  createdAt: string;
+}
+
+export interface VerifyResponse {
+  requestId?: string;
+  result: VerifyResult;
+  reasonCode?: string;
+  provider?: string;
+  verifiedAt?: string;
+  message?: string;
+  raw?: unknown;
+}
+
+// 검증 요청 타입
+export interface RimsLicenseRequest {
+  licenseNumber: string;
+  name: string;
+  birth?: string;
+  licenseType?: string;
+}
+
+export interface BizVerifyRequest {
+  businessNumber: string;
+  startDate?: string;
+  representativeName?: string;
+}
+
+export interface CargoVerifyRequest {
+  name: string;
+  birth: string;
+  lcnsNo: string;
+  area?: string;
+}

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   FileText,
   Users,
+  UserCog,
   Building2,
   AlertTriangle,
   BarChart3,
@@ -33,11 +34,18 @@ export default function MainLayout() {
   };
 
   const isAdmin = user?.role === UserRole.ADMIN;
+  const isCompany = user?.role === UserRole.COMPANY;
+  const isAdminOrCompany = isAdmin || isCompany;
 
   const menuItems = [
     { path: '/dashboard', label: '대시보드', icon: LayoutDashboard },
     { path: '/dispatches', label: '배차 관리', icon: FileText },
     { path: '/work-reports', label: '작업 확인서', icon: ClipboardCheck },
+    // Admin + Company 공통 메뉴
+    ...(isAdminOrCompany ? [
+      { path: '/personnel', label: '인원 관리', icon: UserCog },
+    ] : []),
+    // Admin 전용 메뉴
     ...(isAdmin ? [
       { path: '/drivers', label: '기사 관리', icon: Users },
       { path: '/companies', label: '발주처 관리', icon: Building2 },
@@ -68,7 +76,7 @@ export default function MainLayout() {
         <div className="p-4 border-b">
           <h1 className="text-xl font-bold text-blue-600">배차 시스템</h1>
           <p className="text-sm text-gray-500">
-            {isAdmin ? '관리자' : '직원'} 웹
+            {isAdmin ? '관리자' : isCompany ? '발주처' : '직원'} 웹
           </p>
         </div>
 
@@ -125,7 +133,7 @@ export default function MainLayout() {
             <div className="flex items-center gap-4">
               <NotificationDropdown />
               <div className="text-sm text-gray-500">
-                {user?.role === UserRole.ADMIN ? '관리자' : '직원'}:{' '}
+                {user?.role === UserRole.ADMIN ? '관리자' : user?.role === UserRole.COMPANY ? '발주처' : '직원'}:{' '}
                 <span className="font-medium text-gray-900">{user?.name}</span>
               </div>
             </div>

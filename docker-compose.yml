@@ -1,41 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: dispatch-postgres
-    environment:
-      POSTGRES_DB: dispatch
-      POSTGRES_USER: dispatch
-      POSTGRES_PASSWORD: dispatch123
-      TZ: Asia/Seoul
-    ports:
-      - "5432:5432"
-    volumes:
-      - dispatch-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dispatch -d dispatch"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: dispatch-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - dispatch-redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   # Spring Boot API
   api:
     build:
@@ -47,13 +12,17 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
       - TZ=Asia/Seoul
+      # 외부 DB 서버 연결 (DB_HOST는 .env 또는 환경변수로 설정)
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://${DB_HOST:-localhost}:5432/dispatch
+      - SPRING_DATASOURCE_USERNAME=dispatch
+      - SPRING_DATASOURCE_PASSWORD=dispatch123
+      - SPRING_REDIS_HOST=${DB_HOST:-localhost}
+      - SPRING_REDIS_PORT=6379
+      # verify-server 연동 설정 (같은 네트워크의 verify-api 컨테이너)
+      - VERIFY_API_URL=http://verify-api:8081
+      - VERIFY_API_KEY=${VERIFY_API_KEY:-your-secure-api-key-here}
     volumes:
       - dispatch-uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
@@ -61,8 +30,10 @@ services:
       retries: 3
       start_period: 60s
     restart: unless-stopped
+    networks:
+      - app-network
 
-  # React Web Frontend
+  # React Web Frontend (HTTPS)
   web:
     build:
       context: ./dispatch-web
@@ -70,16 +41,19 @@ services:
     container_name: dispatch-web
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       api:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - app-network
 
 volumes:
-  dispatch-postgres-data:
-  dispatch-redis-data:
   dispatch-uploads:
 
 networks:
-  default:
-    name: dispatch-network
+  app-network:
+    external: true
